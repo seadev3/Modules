@@ -1,0 +1,79 @@
+SuperBrowser v.0.70
+
+Description:
+---------
+The software is designed to simulate work in a browser using someone else's fingerprints.
+For this:
+- Grabber module collects browser profiles (cookies, locale, time zone, etc.)
+- Superbrowser allows you to use these fingerprints to work as this user.
+
+
+Settings for working with the program:
+----------------------------------
+To get started you need:
+- go through the procedure of activating your machine to work with SuperBrowser!!!
+- installed TOR Browser
+- folder with SuperBrowser with the following content:
+contains 21 files. Important to use are:
+- launcher.exe - to launch the browser on new operating systems
+- launch_win7.cmd - to launch the browser on older OS
+- cache - cache profiles
+- profiles - profiles for each config (a new one is created after each launch of the browser)
+- confs - configs from the assembled machine (they appear in the folder when you start the browser from the storage admin panel)
+- bot admin account
+- storage admin account
+
+We connect superbrowser as a "mail agent" to Tor Browser:
+1.Open the Tor browser.
+- enter about:config
+- look for the network.protocol-handler.external.mailto option in the search
+- set to true
+Otherwise, mailto will not work correctly.
+2.Next, you need to write the path to launcher.exe (located in the sbrowser folder) to your Tor browser (in which the storage admin panel is open):
+- Go to the Tor menu: Setting(Options)-> General -> Applications -> mailto option
+- Write the path to our browser (field to the right of mailto):
+          On older operating systems (Windows 7, Windows Server 2008 R2, Windows XP with SP3, Windows Server 2008, Windows Vista and Windows Server 2003), specify the path to launch_win7.cmd
+          On new OS, specify the path to launcher.exe
+          (Otherwise, Mozilla Firefox will not work properly. This is due to bugs in Windows and Firefox.)
+
+*This is a one time thing.
+
+This hack is used to launch our software when clicking on special links in the admin area.
+
+Usage:
+--------------
+1. We take a working bot in the bots admin panel.
+2. Copy the machine id (field Prefix + Client)
+3. Go to the storage admin panel. We find the car by id.
+4. We follow the link of the found car.
+In the car data window we see a line like this: Grabber: Chrome Firefox IE Edge Start. Click Start
+(this runs a command that goes to the bot so that the module is loaded / started there).
+When the collection is completed, numbers like this will appear: Chrome16-6 Firefox IE:16-6 (it may take a long time for the numbers to appear, but the collection is completed. Depends on the load on the storage)
+5. Click on the icon of the desired browser.
+If the settings of the prescribed path to launcher.exe (SuperBrowser) are correct, then launcher.exe will be launched with the profile of the desired browser.
+* In this way, the robbed profile is loaded from storage into superbrowser.
+
+In a running launcher:
+- top left browser profile selection window, type: Chrome as Jim(FISHPC).
+- in the Values ​​tab in the parameters there is a line conf.userchrome:
+- if you set it to false or leave it empty, then after pressing run browser the browser will mimic Mozilla Firefox
+- if set to true, then the browser will mimic Chrome (if it gives an error, ignore it)
+- do not touch other parameters.
+* You can check for cookies in the Cookies tab.
+6. Click Run Browser (a profile will be created and the browser will start).
+7. Check browser links.
+
+Additionally:
+When checking cookies through SuperBrowser, it is possible to insert socks into the corresponding field. The field is on the top right, called "Socks (no proxy)".
+
+
+
+Possible errors when starting the browser and their elimination:
+-------------------------------------------------- -
+1. error 213 - solved by disabling flash cookies:
+1. in the launcher.exe window there is a FlahLso tab - right-click - disable all (or remove all checkmarks).
+2. error 181 - solved: 1. delete the contents of the cache folder (path sbrowser --> cache).
+2. delete the contents of the profiles folder (path sbrowser --> profiles).
+3. restart SuperBrowser.
+3. Could not AssignProcessToObject - appears when SuperBrowser is launched on older operating systems noted below - you need to set the path to launch_win7.cmd (look at the Tor settings item).
+
