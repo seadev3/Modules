@@ -1,0 +1,76 @@
+LAN SCANNER
+TECHNICAL TASK
+
+Write a scanner that obtains system information about computers on a local network.
+
+Conditions and requirements:
+1. The name/password of the domain administrator is given as input.
+2. Required list of information in Appendix 1.
+3. Minimize the total number of network requests as much as possible.
+4. If it is possible to minimize / compress / encrypt network traffic - do it.
+It depends on the services and services of Windows itself that respond to our requests.
+5. Architecturally, the scanner is one program. In the sense that she does not have a counterpart / stagers / agents,
+which would need to be sent over the network and run before performing the scan.
+That is, the program pulls only regular Windows services on remote hosts and completely relies on them.
+6. Implementation language - C++ or C#.
+PowerShell / .bat scripts end up in whole chunks in the Windows system log, so execution as a script is not suitable.
+7. Design in the form of .dll 32/64 bits, according to the document "Design of code and assemblies".
+The entry point is compatible with Cobalt Strike loads.
+The .dll size is up to 1 megabyte.
+It should be possible to pass launch options to the .dll.
+8. Provide work in many threads, and scan priorities.
+Optimize for scanning networks from 1k nodes.
+
+ATTACHMENT 1
+List of received information (commands)
+systeminfo
+"---//---"
+tasklist /v
+"---//---"
+ipconfig /all
+"---//---"
+netstat-abno
+"---//---"
+$apps = @()
+$Apps += Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+$Apps += Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+foreach($a in $Apps) {$a}
+"---//---"
+net share
+"---//---"
+net sessions
+"---//---"
+Get-WmiObject -Class Win32_logicaldisk
+"---//---"
+gci -force "C:\users\*" -ErrorAction SilentlyContinue
+gci -force "C:\users\*\*" -ErrorAction SilentlyContinue | %{
+        $size = [math]::Round($_.Length/ 1Mb,2).ToString() + "MB"
+        $lastTime = $_.LastWriteTime.ToString('yyyy-MM-dd HH:mm:ss')
+        $file = $_.FullName
+        $out = "[$lastTime] {$size}`t $file"
+        $out
+    }
+"---//---"
+gci -force "C:\program files\*" -ErrorAction SilentlyContinue
+gci -force "C:\program files (x86)\*" -ErrorAction SilentlyContinue
+"---//---"
+get date
+"---//---"
+netsh advfirewall firewall show rule name=all
+
+From the first systeminfo command, only the following fields are needed:
+Name: Microsoft Windows Server 2012 R2 Standard|C:\Windows|\Device\Harddisk0\Partition2
+BuildNumber: 9600
+country code: 1
+CSName: DC
+Version: 6.3.9600
+WindowsDirectory: C:\Windows
+OSArchitecture: 64-bit
+organization:
+Manufacturer: Microsoft Corporation
+Locale: 0409
+LocalDateTime: 2021-04-27 16:18:32
+InstallDate: 2020-08-23 23:40:03
+LastBootUpTime: 2021-04-23 21:23:39
+SerialNumber: 00252-70000-00000-AA072
+RegisteredUser: Windows User
