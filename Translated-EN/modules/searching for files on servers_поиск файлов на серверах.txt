@@ -1,0 +1,135 @@
+FILE SCANNER ON RESOURCES WITH KNOWN PASSWORDS
+TECHNICAL TASK
+
+IDEA DESCRIPTION
+At the input, we have an access list of the form
+ssh://user:pass@host:port
+ftp://user:pass@host:port
+
+You need to filter only those servers that have files that match the mask.
+
+SOFTWARE REQUIREMENTS
+The program is formatted as a module according to the module_HOWTO documents and
+"formatting code and assemblies".
+
+Project name: fscan
+
+The module sends the following events with the fscan tag:
+- "Version build %DATE% %TIME%" (once at startup)
+- "File found: %filename% at %user%@%server%:%port%" - when a file is found by mask
+- "Results sent to server" on successful sending of found matches
+- "No result detected, give up" if the module processing is over and nothing was found (hypothetical case)
+In this case, the module should emit the WantRelease event (see "module_HOWTO") to unload from memory
+
+
+CONFIG
+
+The name of the config is the Ctl argument of the Control function, the content of the config is the CtlArg argument (see modules_HOWTO.txt)
+
+Configs must be in any one-byte encoding (preferably ASCII).
+The module accepts a single fsrv config containing a list of addresses of the control server,
+separated by \r\n or \n, in the format address:port.
+If the port is even, the work goes over HTTP, if the port is odd - HTTPS.
+If a protocol prefix (http/https) is specified, the prefix takes precedence over the specified port.
+The module works with the control server, which was reached first, on each request.
+
+WORKING WITH THE COMMAND SERVER
+
+The module communicates with the command and control server via the HTTP(s) protocol with simple requests.
+
+Number of scan threads:
+GET /<group>/<clientid>/fscan/th HTTP/1.1
+The group and clientid values ​​are struct ParentInfo fields
+ CHAR ParentID[256];
+ CHAR ParentGroup[64];
+(see module_HOWTO)
+The answer is a non-negative number.
+If atoi(answer) == 0, then default number of threads = std::thread_concurrency() - 1.
+
+The scanner receives the list to be scanned by an HTTP request to the server
+
+GET /<group>/<clientid>/fscan/domains HTTP/1.1
+Response format:
+proto://user:pass@host[:port][\r]\n
+...
+(single or multiple entries)
+
+The scanner receives a list of regular expressions to search for by a query
+GET /<group>/<clientid>/fscan/rules HTTP/1.1
+Response format:
+regexp1[\r]\n
+regexp2[\r]\n
+...
+(single or multiple entries)
+
+When scanning, the scanner looks for ANY file that matches the regular expression.
+At the same time, after finding the file, scanning continues.
+
+The scanner gets the start directory to search for by query
+GET /<group>/<clientid>/fscan/home HTTP/1.1
+Response format:
+path1[\r]\n
+path2[\r]\n
+...
+(single or multiple entries)
+These are the directories to be searched.
+If there are several directories, the search must be performed in each of them.
+If the answer is empty, you need to search in the current directory.
+
+The crawler receives the search depth by request
+GET /<group>/<clientid>/fscan/nest HTTP/1.1
+Response format:
+non-negative integer less than 100.
+If the answer does not fit this rule, the default depth is 10.
+The number 0 means no restrictions on the search depth.
+
+
+When the iteration over the given list is completed, we let the server know about it:
+
+GET /<group>/<clientid>/fscan/over HTTP/1.1
+
+The server's response is the same as for the /domains request - a new list of domains to work with.
+With an unexpected response (empty list, error code, etc.), the module goes to idle (scanning is stopped)
+and makes the same request every 10 minutes (time is a constant).
+
+The sending of the results is done via the DPOST protocol (see "DPOST password grab TK" for a description of the protocol) by request
+
+ POST /<group>/<clientid>/fscan/81 HTTP/1.1
+
+The collected data is sent in a multipart/form-data container with source and data fields.
+The value of the source field is "Files found"
+Data field value: plain text, line separator \r\n
+Recording format:
+
+proto://user:pass@host:port/path/to/file\r\n
+...
+(single or multiple entries)
+
+The frequency of sending mined data can be obtained from the control server with an HTTP request
+GET /<group>/<clientid>/fscan/freq HTTP/1.1
+
+In the body of the response, we expect a number - this is the number of seconds, no more than which data should be sent.
+If it's 0, send as soon as a new result is ready.
+If this is a positive number - we accumulate records in the buffer and send once every X seconds,
+clearing the buffer on successful send.
+
+
+REGULAR EXPRESSIONS
+
+It uses its own regex syntax.
+The expression can contain the characters asterisk, question mark, and square brackets "[]".
+* An asterisk denotes any sequence of characters including an empty one
+? Question mark stands for any single character
+[] Square brackets enumerate a list of single characters, for example,
+  [jeu] - only one of the three characters "j" , "e" or "u" can stand in its place,
+  [?] - question mark character only,
+  [[] - open square bracket only,
+  [*] - only the asterisk symbol,
+  [[*] - asterisk or opening square bracket.
+Example: q[abc]erty[?]u[[]uu??88]88*
+qaerty?u[uuzz88]88444 - suitable
+qbertysu[uuzz88]88444 - not suitable
+qcerty?u[uuz88]88 - not valid
+qaerty?u[uuz?88]88 - suitable
+qrerty?u[uuz?88]88 - not suitable
+qaerty?u!uuz?88]8811 - not suitable
