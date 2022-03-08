@@ -1,4 +1,4 @@
-# Conti Training Documents
+# Conti Manuals and Documents
 Leaked Conti Guides from April 2019-Sep 2021
 
 Twitter Reference: https://twitter.com/ContiLeaks/status/1498613279480025091
