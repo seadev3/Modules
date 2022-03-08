@@ -1,0 +1,306 @@
+NON-RESIDENT LOADER, REQUIREMENTS
+
+GOAL
+
+We need a non-public bootloader, previously unknown to AB.
+Non-standard approaches to solving the problem of delivering and launching an arbitrary load are most welcome.
+
+DELIVERY
+
+Welcome to the new SmartScreen delivery and bypass methods:
+1. using native OS utilities to download the load https://lolbas-project.github.io/
+2. the use of quilted, non-standard types of loads (pictures, legal files, packaging under the guise of certificates, installers, etc.),
+as an option in combination with the simplest zero stage loader (on scripts).
+Zero stage loader refers to a situation where the user is somehow encouraged to copy from the site / enter manually and execute a short script.
+3. using native OS utilities to build and run the load
+REQUIREMENTS FOR THE LOADER
+
+1. Without fastening
+1.1. Stateless to disk, registry, or anywhere else
+2. Client identification is generally optional; an IP address is sufficient for this. However, if a client ID is generated, it is required:
+Generation of the same identifier on the same computer, regardless of the current user and other circumstances.
+The proposed option is hardware id (a hash of the amount of equipment). The identifier format is not specified.
+2.1. The client also identifies himself as belonging to a certain group (botnet). The group is needed for ease of use - to logically separate some bots from others.
+The group is flashed into the loader at the time of assembly and never changes during the lifetime of a particular loader instance.
+2. Bit x86/x64. Priority bit x64. Launching a load of only the same bit depth as the loader itself.
+3. Collection of information about the system:
+- hostname
+- Username
+- OS version and bitness
+- AB name and version
+- result of net view /all command
+- result of net view /all /domain command
+- result of nltest /domain_trusts /all_trusts command
+- It is NOT MANDATORY to obtain an IP address - this can be done using the backend
+4. No elevation
+4.1. Running as an unprivileged user.
+5. No UAC Bypass
+6. Ability to execute a simple program to start the load:
+6.1. Restarting the process on departures
+6.2. Maintaining cycles and timeouts (the ability to specify how many times we restart, the intervals between restart attempts)
+The general meaning of this paragraph: the load does not always start the first time; it happens that the load crashes due to errors; it happens that one load is banged by AB, and the other is not.
+Because we always have plans B and C.
+It should be noted that the admin panel can give DIFFERENT loads for successive download requests.
+7. Run both .exe and .dll
+8. Launching the load with fileless technology (process hollowing, dll from memory and others like that)
+9. Mimicry of the load under the legitimate process
+10. Use of open communication channels for exchange with C&C (HTTPS, DNS, mail, etc.)
+11. Mimicry of network activity under a legitimate process (it's strange to see network requests from cmd.exe or WerFault.exe, if you decide to host them)
+12. Traffic encryption; simple key distribution scheme. The purpose of encryption is to protect against machine analysis, DPI.
+Simple enough to implement and generate keys, and complex enough to make it impossible to download the load in the browser or fasten the desired dissector in DPI.
+13. Protection against machine analysis (obfuscation of strings, system calls; dilution of low entropy with noise, etc.).
+Here we are talking about protection from analysis by both a person and AB:
+13.1. We complicate the work of disclosing work algorithms
+13.2. Confusing the AV emulator
+13.3. Protection against honeypots and advanced sandboxing is only acceptable if you provide proof of its effectiveness.
+As a rule, here we are talking about obtaining device IDs, hostname, virtual machine, etc., characteristic of sandboxes.
+However, individually, these factors may mean nothing and give false positives, thereby squandering traffic.
+14. The presence of a builder is not necessary if you are ready for constant cooperation later. But in general we want the source code.
+15. OS - Windows Server 2008 R2+, Windows Vista+ - not lower than these versions, including all modern desktop and server Windows.
+If you make it compatible with Windows Server 2008 (without R2, that is, in fact, it's XP), it will be very cool.
+16. Compilation to native code, or (in the case of scripting languages ​​or .Net) the loader must be run on a bare OS.
+There should be no dependencies. If they are extremely necessary for the sake of a cool idea (for example, you decide to run in a virtual machine and install VMWare Player for this), then they are hardwired into a SINGLE file.
+PowerShell - no higher than 2.0.
+Any bundles of cscript, jscript, .bat are allowed, provided they are compiled into a single file.
+
+In other words, it should be one file, and it should work on any Windows without relying on the fact that we have .Net or Microsoft Visual C ++ Redistributable of the required version here.
+17. Compatibility with crypts (for native code):
+17.1. Building the loader itself in both .exe and .dll
+17.2. Moderate size (say up to 1M)
+17.3. CRT/STL minimization (not all crypts digest).
+
+
+
+ACCEPTANCE TEST
+
+Acceptance is based on the developer's lack of full integration with the admin panel, so that the guarantor can independently evaluate the work.
+Accordingly, the developer makes a demo for the guarantor on his resources (VPS, virtual machines, etc.).
+
+0. 1 (one) loader file and admin gateway file(s) + necessary stubs for it (see below), which are used by the developer for internal tests, are provided for the test.
+If the file is compiled to a native .exe, an additional .dll must be provided - to demonstrate the presence of an assembly profile in the .dll.
+In such a case, the .dll is run via rundll and is also tested.
+Source codes are not needed at this stage, there can be any kind of obfuscation / encryption.
+The admin gateway is deployed on the customer's server. Configuration is carried out jointly by the customer and the developer.
+The demo is also made on a VPS rented by the customer. Please note that the word V in VPS means virtual (virtual machine).
+1. The statics on dyncheck.com must be clean.
+2. No more than 4 behavioral detections at the time of acceptance on dyncheck.com.
+Dyncheck settings: 240 seconds test, full internet access.
+2.1. Absence among dynamic detections
+- Windows Defender
+- ESET Nod32
+- Avast Home
+-Kaspersky Antivirus
+- BitDefender
+3. As a load, several files should be checked one by one:
+3.1. putty.exe
+3.2. notepad.exe
+3.3. DbgView.exe https://docs.microsoft.com/en-us/sysinternals/downloads/debugview
+Additionally, the customer will offer several other files not from the public. These will be the simplest stubs like MessageBox("hello, world!"), statically linked,
+no dependencies. Perhaps with minimal use of WinApi (GDI functions). The purpose of this is to demonstrate that the loader is capable of handling an arbitrary load.
+These files are hosted on the customer's web server.
+4. The test is performed alternately on two computers with enabled AB (Windows Defender, ESET Nod32) and an arbitrary version of Windows from the requirements.
+Anti-virus databases are up to date, cloud protection is disabled, sample sending is disabled.
+All provided loads are tested one by one.
+5. The loader in the "as is" form (without packaging into an archive; if it is .exe, then it means .exe and download it) is downloaded from the qaz.im file sharing service (or another specified) in the Chrome browser of the latest version at the time of release.
+There should be no warnings about the virus either from the browser or from the antivirus.
+6. The loader starts up. If it is not possible to sign the loader file with an EV-certificate to launch directly from Chrome, then Chrome's cries of distrust for the file are ignored, the file is launched manually from Explorer.
+7. The loader should download and run the load. The fact of downloading is monitored on the web server.
+The load must work on the computer for at least an hour and not be demolished by the browser / AV.
+
+Tests are performed in turn for each load presented, with loader rebuilds if necessary.
+We understand that modern AVs are very smart, with consistent tests we only help them learn, and at some stage a detection may appear where it was not.
+And yet, by doing this we imitate real work, and you demonstrate the survivability of the solution.
+If necessary, we can change the address and hardware id of the VPS in order to unassociate AV with a specific demo stand.
+
+
+
+GATEWAY TO ADMIN
+
+The admin is already there.
+The admin panel provides a PHP interface for connecting to it.
+The admin object is called $adm and is a global.
+The gateway itself must be designed as a class in PHP with a certain set of public methods (i.e. export its interface for the admin panel).
+
+The gateway is identified in the admin panel by its name.
+
+In the case of using protocols other than HTTP to communicate with the loader, the gateway will be directly to our HTTP pad, the protocol for it is requested and provided separately.
+This is a more complex case, we will help with such an integration.
+In the case of a protocol over HTTP, the way to integrate with the admin panel is described below.
+
+
+
+BACKEND INTERFACE
+
+1. Registration setting
+$adm->register_property($plugin_name, $prop_name, $length) register a setting for this gateway in the admin panel
+  $plugin_name: String with gateway ID
+  $prop_name: string with property id
+  $length: maximum field length
+TODO: perhaps in the future the field type and display options in the admin panel (widget type) will also be added.
+The setting is stored in binary form in the database (meaning you don't need to escape it in any way when saving).
+Returns true on success, false on error.
+
+The property appears in the group (botnet) settings dialog in the admin panel. That is, the setting changes in the context of the group.
+
+For example, in your protocol implementation, you decide to use different HTTP header names, URI prefixes, and other HTTP request properties for different groups.
+In this case, you register the necessary settings, in the request handler you get their values ​​for the group to which the client belongs.
+Further parsing of the request takes into account these data.
+The settings can be encryption keys, port numbers, any addresses, etc. - everything you need to organize your own protocol.
+
+2. Get set up
+$adm->get_property($plugin_name, $prop_name, $group = null) get a property (setting) with the specified name; optional group is specified
+  $plugin_name: String with gateway ID
+  $prop_name: string with property id
+  $group: group (botnet) identifier, optional. If not specified, the default value of the setting will be returned without group splitting.
+Returns the setting value.
+
+
+3. Get a list of botnets
+$adm->get_groups($plugin_name) get an array with a list of groups available for this plugin
+  $plugin_name: String with gateway ID
+Returns a dictionary of dictionaries:
+"group name" => "dictionary" {
+   "setting name1" => "setting value1"
+   ...
+   "setting nameN" => "setting valueN"
+}
+
+3. Get a load
+$adm->get_payload($bitness, $group) get the payload from the given group with the specified bitness
+  $bitness: takes two possible values ​​86 and 64 (int)
+  $group: group id
+Returns the load to be given to the loader
+
+4. Logging out
+$adm->knock($group, $id = null) register a knock from the given address
+  $group: group id
+  $id: machine ID (optional)
+Returns nothing.
+
+5. Registration information and system
+$adm->put_sysinfo($group, $info, $id = null) computer information
+  $group: group id
+  $id: machine ID (optional)
+  $info: A dictionary with information about the system.
+The dictionary fields are as follows:
+  hostname: hostname
+  uname: username
+  os: OS name
+  os_bitness: OS bitness
+  os_version: OS version
+  av: AV name and version
+  net: result of the net view /all command
+  netdomain: result of net view /all /domain command
+  trust: result of nltest /domain_trusts /all_trusts command
+The dictionary is extensible if you want to convey something else useful.
+The function does not return anything.
+6. Send telemetry
+$adm->put_telemetry($group, $data, $id = null) outgoing telemetry
+   $group: group ID
+   $id: machine ID (optional)
+   $data: custom message from loader
+
+Note
+The meaning of telemetry is remote debugging, and information about the work of the loader.
+It would be nice to know:
+- that the loader downloaded the load
+- about the fact that he launched it
+- about errors that occurred (for example, the load process died quickly)
+- about repeated attempts to start the load
+- about other events
+
+
+
+ERROR PROCESSING
+
+If the calling context encounters any error while working through the API, and unless the error is specifically stated, processing is aborted.
+Either silently (in combat conditions) or try to tell you why (if error_reporting is enabled).
+
+GATEWAY INTERFACE
+
+The gateway is a class in PHP, with no framework dependencies.
+The gateway will run in the context of some framework, but you shouldn't count on it.
+The gateway exports two public functions:
+
+1. Installation in the system
+$gate->install()
+This is where the settings needed by the gateway are registered.
+
+2. Request processing
+$gate->process_request($HTTP_request)
+Processes an incoming request and generates a response.
+  $HTTP_request: Incoming request with all headers
+Returns a dictionary:
+  code => HTTP response code (number or string)
+  response_headers => HTTP headers of the generated response. If the response is not 200, may be empty.
+  response_body => HTTP body of the generated response. If the response is not 200, it may be empty.
+
+  If the response is 400, it means that the gateway did not recognize the request as valid.
+  If the response is 404, it means that the gateway as a whole recognized the request as valid, but could not match it with the group.
+  If the response is 200, it means that the response is fully processed and no further processing is required.
+  Any other response codes are treated as a processing error; this completes the response processing for this gateway.
+
+
+
+PHP
+
+PHP version - at least 7.0.
+You can count on all common plugins.
+If you need something custom - we will turn it on or assemble it.
+
+GATEWAY IMPLEMENTATION EXAMPLE (PHP-LIKE PSEUDOCODE)
+
+require_once "adm_api.php";
+// got the $adm object from here
+
+class sample_gate {
+string $plugin_name = "Vasi plugin";
+
+// plugin registration function in the system
+// this function is exported from the class (public)
+install() {
+    // Regaining a setting (field) with such and such a name and such and such a length
+    // For example, we want to cover the load with a cipher so that the loader decrypts it at the other end
+    $adm->register_property($plugin_name, "RSA_public_key", 4096);
+}
+
+// processing one request, the entire HTTP request is passed here
+// this function is exported from the class (public)
+// in response, we receive an array with the HTTP code, headers, and the response body
+function process_request(string $request) {
+    // I want from the admin panel a list of groups available to Vasya, with their prefixes and all the bullshit
+    array $groups = $adm->get_groups_list();
+
+    // parsed the request into parts, did a preliminary validation
+    if(not valid request)
+        return array("code=>"400"); // bad request; after that, the calling context can continue searching for a suitable plugin for this request
+
+    foreach($g => $groups) {
+        if(request matches this group) {
+            $adm->knock($REMOTE_ADDR);
+            if(request is telemetry)
+                $adm->put_telemetry($g, $message_from_request);
+            else if(this is sysinfo) {
+                $info = get_sysinfo_from_request();
+                $adm->put_sysinfo($g, $info);
+            }
+            else if(request for payload) {
+                $bitness = figure out bitness from the request;
+                $payload = $adm->get_payload($bitness, $g);
+                $encryption_key = $adm->get_property($plugin_name, "RSA_public_key");
+                $HTTP_body = encrypt_payload($payload, $encryption_key);
+                $HTTP_headers = arrange_headers_somehow();
+            }
+            return array("code=>"200", "response_headers" => ...);
+        }
+    }
+
+    return array("code=>"404");
+}
+
+// then there are private functions of the class that the admin doesn't want to know about
+function encrypt_payload() {}
+
+function arrange_headers_somehow() {}
+//etc
+}
