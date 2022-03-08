@@ -1,0 +1,102 @@
+Regulations for the daily preparation of crypts
+
+1. The developer prepares the morning build as follows:
+- versions of all files are incremented to be different from yesterday's files
+- You need to make sure that the gaskets are working.
+The build is not issued only if there are no live pads at all. This is considered an exceptional situation, we put everyone on their ears.
+If part of the gaskets has died, we inform the admins and me.
+- under the crypt you need to issue both .dll and .exe. For a crypt, .dll is better, but it cannot be checked in dynamics.
+.exe serves both for control checks on AB and in case of problems with .dll encryption.
+- if possible, make several versions of files with different hash sums.
+
+2. The developer must independently check the morning assembly on autotests, give an opinion on its suitability no later than 11 am Moscow time.
+3. A suitable assembly must go to the crypt no later than 12 noon.
+4. The tester must ask the client and prepare for testing a list of working file names (under which the file will be used),
+because The name can be AV Detect.
+The tester announces a list of developer and crypter names to run their tests using those names.
+4.1. If it turns out that there are AV detections for all the names from the list, everyone (client, developer, crypter) is notified about this.
+While a back-up list of names is being prepared, simple, non-meaningful "temporary" names are used. For example 1.exe, hello.exe, a.exe etc.
+If the preparation is urgent (for a campaign), the file is still issued, with a note about the importance of the name.
+5. At least two crypts of each build must be prepared. Several are better. With different hash sums.
+6. Not later than 14 hours, the crypt must be ready and submitted for testing.
+6.1. The crypter is obliged to independently check his crypt for top ABs, including by means of the cryptopanel.
+Crypts with runtime detections > 3 are accepted only in emergency cases.
+In the normal case, there should be no runtime detections on corporate AVs.
+7. For testing, the tester:
+- signs the crypt with a digital signature (if any)
+- uploads files to the admin panel, in the Groups -> (group name), putting down the new version number
+- marks uploaded files as Staging
+- runs on autotests
+8. If the tests pass successfully, the tester marks the tested set of files as Actual in the Groups -> (group name) section
+9. Final check implies
+- rename file to working name
+- uploading the file to the site
+- download it via browser
+- launch.
+Because this is exactly what the user's file launch scenario is.
+At this stage, the detector may appear
+- to the file name
+- Can't skip smartscreen OS.
+10. In case of discrepancies in the result of tests for AB - internal and at the customer, check the following points:
+- performance autotest and antivirus acc. VM (checked manually)
+- File name
+- is AV cloud protection enabled
+- other AV settings
+- AB version and base
+
+11. THE CRYPT ISSUED TO THE CLIENT MUST BE COVERED WITH PROOFS:
+The crypt folder should contain the following reports (only if a specific test was applied):
+11.1. Auto subdirectory with text logs of autotests from our VMs (copy-paste logs)
+11.2. Manual subchannel with screenshots of each stage of manual testing:
+- window "About the system" with information about the OS
+- browser with input link for downloading
+- browser and AB log window after upload
+- AB log window immediately after starting the file
+- AB log window after time interval
+- the same for re-download
+- the same when rebooting
+11.3. dyncheck.txt file with links to dyncheck testing
+Test settings on dyncheck:
+- test time - maximum (240 sec)
+- internet - full access
+
+If the crypt is returned for cleaning, a full report is not needed, a report that directly reflects the detection is sufficient.
+
+12. The tester should dyncheck the discontinued builds on a weekly basis.
+This is necessary in order to timely identify detections on antiviruses that we do not have.
+Test parameters:
+- static, loader and bot x64
+- dynamics, only x64 loader.
+Checking with the Internet turned on during the test can only be done in the morning, when the responses from the sandboxes do not interfere with the combat work of the operators.
+The rest of the time, do a test on the speaker only with the Internet turned off on the test!
+
+
+*** FAQ ***
+Q: What should be the set issued in the crypt?
+ABOUT:
+Full:
+loader 32 exe
+loader 32 dll
+loader 64 exe
+loader 64 dll
+bot 32 exe
+bot 32 dll
+bot 64 exe
+bot 64 dll
+
+Reduced: only 64-bit files from the complete set
+
+Q: Why cook both .dll and .exe?
+A: The crypter uses one of the files that is more convenient for him.
+Usually .dll is more convenient for encryption, but sometimes - .exe
+In addition, the .exe is a test sample - in case something does not work, you can run the .exe and check the functionality of the functionality.
+
+
+Q: What is the composition of the kit after the crypt?
+Full:
+loader 32 exe
+loader 64 exe
+bot 32 exe
+bot 64 exe
+
+Reduced: only 64-bit files from the complete set
