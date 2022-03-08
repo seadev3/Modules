@@ -1,0 +1,238 @@
+CRYPTOLOKER
+TECHNICAL TASK
+
+GOAL
+
+Develop a simple and efficient minimalistic cryptolocker.
+
+REQUIREMENTS
+
+- Minimum binary size
+- Compliance with the requirements in the "formatization of code and assemblies"
+This includes the design of the program as a dll, as well as the presence of an entry point for Cobalt Strike
+- The presence of a builder (configurator) that flashes the settings and creates a pair of "locker-unlocker"
+- use of a fast stream cipher (ChaCha20 or similar) to achieve maximum performance and coverage of the system.
+The key management scheme can then repeat REvil/Sodinokibi https://blog.amossys.fr/sodinokibi-malware-analysis.html
+(the symmetric key for covering Chacha20 files is generated at the start of the locker;
+it is encrypted with the RSA4096 public key sewn into the locker and stored on the disk of the covered machine;
+the RSA4096 private key is embedded in the unlocker, it allows you to read and decrypt the ChaCha20 symmetric key used for covering)
+- the program must cover all available network balls
+- the streaming model of the program should maximize disk and network share processing
+- the key quality of the program is its speed of disk processing.
+
+
+PROTECTIVE MEASURES
+
+- Obfuscation of strings and system calls
+- Removal of AV hooks at the start
+- Mitigations for injection protection
+- Injection protection by hooking BaseThreadInitThunk
+- protection against stopping the process (check under WOW64!)
+- protection against restarting the computer while the program is running (check under WOW64!)
+- delete shadow copies at startup (check under WOW64!)
+- disable recovery mode (recovery mode) Windows
+
+IDENTIFICATION
+
+Botha is identified by a pair
+1. dev-id, which is calculated as a hash function of the unique characteristics of the system - hardware and OS.
+Purpose: to identify the computer.
+2. Encryption key flashed at the assembly stage.
+Purpose: to identify the attacked target, to find an unlocker for a specific target using this fingerprint.
+
+More:
+
+1. It is suggested to use md5/sha-hash from the string "creation_date%windir%.computer_name.creation_date%windir\system32%.domain_name_or_workgroup".
+You can also mix in the name of the hard drive, the MAC address of network interfaces, and other hardware names here.
+The key properties of dev-id are
+- dev-id must be generated every time
+- at the same time, it must be the same when launched from different users of the system
+- it should not be saved to disk
+- it must be unique
+- it is always generated the same way on the same computer.
+2. The builder creates a pair of "locker-unlocker" executable files, generating a pair of cryptokeys for them and flashing them into files.
+Wherever the key is used for identification purposes (rather than for disk encryption purposes), a short fingerprint of the key (fingerprint) should be used.
+
+BUILDER
+
+Builder is a console program that
+- takes two files as input - locker and unlocker
+- generates a pair of crypto keys, exports them to files
+- flashes these keys into the locker and unlocker
+- you definitely need the ability to both generate a pair of keys and use a pair of previously created keys (from files)
+- and also flashes other settings in them, specified from the command line (see item 9 of the ALGORITHM section)
+- at the output it issues a stitched locker and unlocker, with changed names.
+The name of the locker and unlocker must be mixed with the key fingerprint and the date of creation, for example:
+locker_aabbccddeeff_01012020.ex_
+- output file extension must be .ex_ to prevent accidental launch!!!
+
+
+ALGORITHM
+
+1. Check the keyboard layout, and if it matches any country from the CIS + Ukraine zone, exit immediately.
+This feature should be disabled via conditional compilation.
+2. Generate your dev-id
+3. Generate key fingerprint
+4. Generate text for the landing file in memory by substituting your identifiers into it.
+(there is a gap on purpose)
+8.3. The program works in one of two modes: fast or full.
+In fast mode, only the first megabyte of the file is encrypted. This is necessary to quickly cover the system.
+Full mode encrypts the entire file.
+For fast mode, settings are provided:
+- file coverage percentage
+- maximum file size for full coverage (after this size, the file is partially covered)
+These settings are best set on the command line.
+When partially covering the file, this should be done either in a checkerboard pattern (covered the first 1M, then 1M pass, again 1M is covered, etc.),
+or according to some predictable formula (golden section type progression, so that the maximum covered space is not concentrated
+only in one place in the file)
+8.3.1. After processing the catalog, a landing file with the text about the ransom is created in it.
+8.4. If a Share violation type file access error occurs (the file is being occupied by another process),
+the program finds the blocking process and kills it, or stops the corresponding service.
+In case of errors, the program tries to repeat the action three times with an interval of 2 minutes, after which it skips the file.
+Further work does not depend on the result of this step.
+8.5. The program first processes directories from a special "quick" list - a list of directories,
+which must be passed first.
+8.6. The program DOES NOT TOUCH files and directories from a special stop list - a list of files that cannot be touched.
+
+In this case, combinations of a quick list and a stop list are processed as follows: (*)
+8.6.1. We cover all paths from the quick list that are not in the stop list
+8.6.2. If the entire disk is in the stop list, on this disk we cover only the paths from the quick list, without touching the rest of the disk
+8.6.3. If the stop list is empty, we cover the folders from the quick list first; other files later.
+* see also item 12 about network modes
+
+8.7. The program encrypts only files with extensions from the list of working extensions; the rest are ignored.
+8.8. The program removes files from a special list, overwriting their contents three times:
+- first time constant 0
+- the second time by the constant FF
+- third time by random garbage
+- the fourth time the file is deleted
+8.9. The program treats all disks in this way.
+All errors during operation are ignored.
+8.9.1. The concept of "all drives" also includes all available network Shares, as well as network drives.
+
+9. List of changeable settings in the program:
+9.1. Operating mode (fast/full)
+9.2. Encryption key
+9.4. quick list
+9.5. stop list
+9.6. list of working extensions
+9.7. list to delete
+9.8. landing file text
+All lists can be either paths to directories or individual files.
+All file-related settings must support:
+- wildcards (symbol *)
+- environment variables.
+Processing of files without extension should be provided (should be processed by default).
+All lists must be validated for correctness (obviously incorrect paths must be ignored).
+
+
+10. After completion of work, the program will self-destruct.
+
+11. There should be two counters in the test assembly:
+11.1. how much data is encrypted, in bytes
+11.2. the size of the processed files, including those that are partially encrypted, skipped, deleted, etc. is an indicator of the overall processing speed.
+These counters should be logged periodically, along with the current timestamp.
+This is for speed measurements.
+
+12. Additionally, you need to provide the following modes of scanning network resources / file shares
+12.1. local - Encrypts only local files + priority list
+12.2. net - Encrypts only network resources + priority list.
+The list of network resources is specified in a file, in the format ip\host address, one line for each host.
+12.3. all - Encrypts as net + local (set by default)
+12.4. scan - Encrypts as net + automatic network scan by subnet mask
+12.5. scanext - list of hosts given in file + as scan
+The option can only be specified with -m net or without the -m option.
+The hosts file must contain ip\host address, one line per host.
+
+Scanning the network and processing the share takes a long time, so processing local files
+in online modes should start immediately.
+Note that the same network drives can be mounted as local drives and be detected as a separate network share.
+In this case, you should prevent the disk from being re-encrypted.
+In general, great care should be taken to detect re-encryption of an already covered directory/resource,
+because encryption can and will run in parallel from multiple computers.
+
+
+LANDING FILE
+
+This is a text file with ransom text.
+Name readme.<6 random letters and numbers>.txt.
+
+The file uses macros:
+%devid% - dev-id of the computer
+%fingerprint% - key fingerprint
+Instead, the values ​​created in steps 2 and 3 are substituted.
+
+The text of the file is set from the builder.
+
+WINDOWS KNOWN BUGS AND LIMITATIONS
+
+- when trying to open a file with a WOW64 process on 64-bit Windows 7/8/2009,
+the CreateFile/OpenFile functions always return TRUE and do not return an error code.
+at the same time, when trying to read / write, a fall is possible.
+as a solution to the problem, the number of open handles to the process is checked before and after trying to open the file.
+- WOW64 process cannot get a valid list of all handles on a system on 64-bit Windows XP/2003
+- when opening a file by a WOW64 process with the FILE_FLAG_OVERLAPPED flag,
+a file can be opened almost simultaneously by several processes for reading/writing.
+In this case, the file can be sequentially overwritten by all these processes.
+Be careful when running multiple lockers at the same time!
+A named mutex will only help with local disks!
+- Large buffer access delays when using virtual memory, especially noticeable on Windows 10.
+It is better to allocate memory from the heap.
+- file system/file damage can lead to hangs when processing such files
+- some encryption algorithms slow down on high entropy files (media - .mp3, .mp4, .avi, archives, etc.)
+
+SOURCES OF INFORMATION
+
+https://www.mcafee.com/blogs/other-blogs/mcafee-labs/ransomware-maze/
+https://habr.com/ru/company/acronis/blog/522022/
+https://www.carbonblack.com/blog/tau-threat-discovery-conti-ransomware/
+https://www.carbonblack.com/blog/tau-threat-analysis-medusa-locker-ransomware/
+https://blog.amossys.fr/sodinokibi-malware-analysis.html
+More alive than all the living: we analyze the first sample of the new BlackMatter ransomware
+https://habr.com/ru/company/group-ib/blog/571940/
+
+TEST PLAN
+
+1. Functionality
+Testing is carried out with the AB turned off.
+All encryption modes and settings variations are sorted out.
+Confirmed:
+1.1. software response to settings
+1.2. compliance with the specified encryption mode
+1.3. correct handling of network drives and share
+1.4. correct processing with several simultaneously running instances of the software on one computer
+1.5. the same as 1.4, but the same network share is processed from different computers
+1.6. deleting shadow copies of operating system volumes
+1.7. maintaining the operating system after the end of work
+1.8. stop locker from normal user
+1.9. stop locker from administrator
+1.10. prevent machine reboot/stop
+
+2. Compatibility
+The check is done on the following versions of Windows OS:
+2.1. Windows 10
+2.2. Windows Server 2012-2018
+2.3. Windows 8.1
+2.4. Windows 7
+2.5. Windows Server 2008 R2
+2.6. Windows Server 2008 (without R2)
+2.7. Windows XP
+2.8. Windows Server 2003
+
+3. Speed
+The speed is measured.
+To do this, statistics metrics must be built into the software - you need a way to find out the speed
+3.1. in megabytes per second
+3.2. file descriptors per second (since files can be small)
+Of course, an allowance is made for the fact that the test is conducted on virtual machines, but you can compare the performance with competitor software on the same VM.
+
+4. Antiviruses
+4.1. Windows Defender
+4.2. ESET
+4.3. Sophos
+4.4. Avast
+4.5. BitDefender
+4.6. Norton
+4.7. Kaspersky
+The absence of detections 4.1-4.3 is mandatory.
+A valid mode is when the AV makes a behavioral detection, but cannot remove the process until the end of its processing.
