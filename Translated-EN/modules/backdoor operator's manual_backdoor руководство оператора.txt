@@ -1,5 +1,3 @@
-EN/backdoor руководство оператора.txt
-
 BACKDOOR
 OPERATOR'S MANUAL
 
@@ -30,12 +28,12 @@ Can:
 - download an arbitrary file (size limit 10M)
 - kill the process
 - delete from disk
+
 The bot DOES NOT have any password stealers, injectors, grabbers, scanners, horizontal spreading, sploit and other tools.
 You use either third-party manufacturers, or, if necessary, provide your own, executed as a SEPARATE SOFTWARE.
 For the emphasis on lightness.
 
 Management is carried out using the operator panel.
-
 
 RECOMMENDED TACTICS
 
@@ -93,6 +91,8 @@ The Windows Defender log can be read like this (powershell):
         $_.TimeCreated -ge '2021-01-01 00:00:00' -and
         $_.Id -in 1006,1015,1116,1117 }
 
+
+
 ****************
 OPERATOR PANEL
 ****************
@@ -110,7 +110,6 @@ The bot page has sections:
 - command builder
 - info about the bot
 - command history
-
 
 
 EXECUTING COMMAND
@@ -323,7 +322,6 @@ AUTOLOAD COMMANDS
 It is possible to automate the processing of new bots - to form a sequence of commands that will be added to the command queue for the first bots that have tapped.
 For this, the functionality "startup packages" is implemented. Groups can be divided according to the method of processing incoming bots, for each set a different sequence of commands.
 
-
 CLOAKING
 
 It is possible to automatically filter bots by country and/or address ranges by groups.
@@ -352,8 +350,8 @@ A summary of useful bots, used to evaluate activity for selected groups and date
 There is an unloading in text format.
 
 
-ПРИЛОЖЕНИЕ
-РЕКОМЕНДУЕМЫЙ СКРИПТ ДЛЯ КОМАНДЫ SYSINFO.BAT
+APPENDIX
+RECOMMENDED SCRIPT FOR THE SYSINFO.BAT COMMAND
 
 @echo off
 
