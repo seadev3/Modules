@@ -13,6 +13,7 @@ Welcome to the new SmartScreen delivery and bypass methods:
 as an option in combination with the simplest zero stage loader (on scripts).
 Zero stage loader refers to a situation where the user is somehow encouraged to copy from the site / enter manually and execute a short script.
 3. using native OS utilities to build and run the load
+
 REQUIREMENTS FOR THE LOADER
 
 1. Without fastening
@@ -70,7 +71,6 @@ In other words, it should be one file, and it should work on any Windows without
 17.3. CRT/STL minimization (not all crypts digest).
 
 
-
 ACCEPTANCE TEST
 
 Acceptance is based on the developer's lack of full integration with the admin panel, so that the guarantor can independently evaluate the work.
@@ -113,7 +113,6 @@ And yet, by doing this we imitate real work, and you demonstrate the survivabili
 If necessary, we can change the address and hardware id of the VPS in order to unassociate AV with a specific demo stand.
 
 
-
 GATEWAY TO ADMIN
 
 The admin is already there.
@@ -126,8 +125,6 @@ The gateway is identified in the admin panel by its name.
 In the case of using protocols other than HTTP to communicate with the loader, the gateway will be directly to our HTTP pad, the protocol for it is requested and provided separately.
 This is a more complex case, we will help with such an integration.
 In the case of a protocol over HTTP, the way to integrate with the admin panel is described below.
-
-
 
 BACKEND INTERFACE
 
@@ -146,6 +143,7 @@ For example, in your protocol implementation, you decide to use different HTTP h
 In this case, you register the necessary settings, in the request handler you get their values ​​for the group to which the client belongs.
 Further parsing of the request takes into account these data.
 The settings can be encryption keys, port numbers, any addresses, etc. - everything you need to organize your own protocol.
+
 
 2. Get set up
 $adm->get_property($plugin_name, $prop_name, $group = null) get a property (setting) with the specified name; optional group is specified
@@ -194,6 +192,7 @@ The dictionary fields are as follows:
   trust: result of nltest /domain_trusts /all_trusts command
 The dictionary is extensible if you want to convey something else useful.
 The function does not return anything.
+
 6. Send telemetry
 $adm->put_telemetry($group, $data, $id = null) outgoing telemetry
    $group: group ID
@@ -208,8 +207,6 @@ It would be nice to know:
 - about errors that occurred (for example, the load process died quickly)
 - about repeated attempts to start the load
 - about other events
-
-
 
 ERROR PROCESSING
 
@@ -239,8 +236,6 @@ Returns a dictionary:
   If the response is 404, it means that the gateway as a whole recognized the request as valid, but could not match it with the group.
   If the response is 200, it means that the response is fully processed and no further processing is required.
   Any other response codes are treated as a processing error; this completes the response processing for this gateway.
-
-
 
 PHP
 
