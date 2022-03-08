@@ -1,5 +1,3 @@
-EN/брут OWA.txt
-
 TASK FOR DEVELOPING A PASSWORD CHOOSING MODULE FOR OUTLOOK WEB ACCESS (OWA)
 
 The purpose of the module is distributed guessing of passwords for OWA
