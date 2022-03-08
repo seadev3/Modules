@@ -1,0 +1,33 @@
+PRINT VULNERABILITY SCANNER
+TECHNICAL TASK
+
+
+GOAL
+You need a scanner for vulnerable printers that are accessible from the Internet.
+The result of the scanner's work is a list of addresses where there is a printer with a confirmed vulnerability.
+
+
+ALGORITHM
+The scanner combines two public services: https://shodan.io and Printer Exploitation Toolkit https://github.com/RUB-NDS/PRET
+- On shodan.io we do a search, for example, for the word PJL
+- parse the results and feed them to the PRET script
+- if the PRET script was able to connect to the printer, execute the commands in sequence
+ id
+ pwd
+ ls
+ df
+and write the command itself and its result to the log
+- go to the next search result.
+
+Note: You need an account to access shodan.io. But in theory it is safe even when implemented as a module for a bot.
+You can pre-download the necessary data in .csv format and upload them separately to bots through configs.
+Exporting search results to .csv/.json from shodan.io is a paid service.
+
+IMPLEMENTATION
+There are two implementation options:
+*as a standalone scanner.
+  + Execution language - any scripting language, but not too exotic (python, PowerShell, javascript).
+  + Fast and easy.
+* as a module to the bot
+  + the implementation is much longer, because need to rewrite PRET in C++
+  + but you can work distributed
