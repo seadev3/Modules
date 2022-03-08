@@ -1,0 +1,63 @@
+Improvement goals:
+1. Securely cut off AVs and investigators from receiving a load
+2. Remove behavioral detections through interaction with users
+The idea of ​​improvement is the manual activation of each bot by the operator.
+
+Implementation
+
+0. The "Manual payload confirmation" switch is added to the group settings.
+If it is disabled, everything works as before.
+If enabled - as described below.
+The switch belongs to the kernel, i.e. it is common to all protocols.
+
+An appropriate macro switch is added to the loader/bot assembly.
+
+1. Show loaders that have not yet been given a load in the list of bots in the admin panel.
+In the identifier field, show the key passed by the loader to the admin panel (see below).
+2. Add a button "allow payload" - in English "Confirm payload" (you can use icons).
+Without pressing this button by the operator, the loader is not given load.
+3. Add a "Deny payload" button. By pressing this button, the IP address flies to the list of honeypots, the load is not given.
+4. The loader must interact with the user at startup - draw a window in which to request a serial number.
+The length of the serial number is 8 characters, letters and numbers (if there are no objections from customers and developers regarding the length and format).
+The window class, the text of the window must either be regenerated from assembly to assembly (so that the detection is not hung on lines),
+or be as indistinguishable as possible (a bunch of service windows in the OS should have such a class).
+The key value is validated by character class and length.
+Until the key is received, the loader does nothing.
+5. The loader must also be able to accept this switch from the command line. In this case, the window with the request is not displayed.
+6. The key is transferred by the loader in the Cookie field in clear text, the cookie name is arbitrary.
+Accordingly, the loader:
+- server validation is reintroduced for proto2; the server encrypts either the payload or arbitrary text in any Set-Cookie with the group key.
+The loader considers the server to be valid if the cryptoAPI decryption function returned the correct status.
+- finds the first validated server;
+- knocks on it in an endless loop at random intervals from 3 to 15 minutes, ignoring all responses 400, 404, 500, etc.
+If the server stops responding (there is no connection / response), it goes into the search for servers.
+
+Backend:
+- 404 Not Found says to all incomprehensible load requests from UNKNOWN IP addresses.
+If bot(s) not from the Honeypots subnet already live at this address, the load is given.
+- looks for a Cookie in the output with a value length equal to the length of the key (8)
+- considers the value of this Cookie as a loader identifier, and draws this request in the list of bots
+- after confirmation by the operator and the issuance of the load, the backend glues the bot with the loader.
+For this:
+- the bot at the *first tap* must send the md5 key in any Fake Cookie.
+Accordingly, the loader must pass the key to the bot process (via the command line or by any interprocess communication other than writing to a file).
+- the backend looks for a loader with the same IP address, whose key hash matches the value of any Fake Cookie.
+If for some reason the comparison does not occur, the bot is considered honey with all the consequences.
+- the bot does not change its current scheme for generating the main identifier.
+The key transmitted by the loader is used once at the time of the first release to validate the load and to match the loader and the bot.
+
+
+At the time of the first bounces, we already have the real IP address of the loader/bot fixed.
+We introduce additional protection:
+- the bot ID is tied to the address.
+If the shim does not return a real IP, a 404 response.
+If there is an ID in the database from the left IP address, the response is 404.
+- Honeys now receive a 404 Not found response to any requests.
+
+Operators work
+
+Operators themselves generate a one-time list of serial numbers for each load.
+If necessary, we will help write a small script generator.
+From this list
+- dj on the phone dictates the number and crosses it off the list
+- according to this list, the admin panel operator validates all incoming feedback.
