@@ -1,5 +1,3 @@
-EN/админка сканеров.txt
-
 ADMIN AND BACKEND FOR PASSWORD AND VULNERABILITY SCANNERS
 TECHNICAL TASK
 
@@ -105,7 +103,6 @@ Content-Type: text/plain
 If the site was occupied by the same client,
 we again give this section to the module. This is a standard situation, which means
 reloading the module without saving the state.
-
 
 If the area is already occupied by another scanner of the same type,
 look at the "save time" setting; if the former owner of the site did not release him during this time,
