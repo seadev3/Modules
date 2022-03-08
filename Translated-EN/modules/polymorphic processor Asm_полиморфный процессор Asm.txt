@@ -1,0 +1,51 @@
+TECHNICAL TASK
+PREPROCESSOR FOR ASSEMBLY CODE POLYMORPHING
+
+GOAL
+
+Develop a preprocessor that receives an Asm listing as input and also produces an Asm listing as output,
+in which the code is equivalent to the original, but differs in instructions, and possibly in other criteria.
+
+REQUIREMENTS
+
+The preprocessor must be implemented as a command line utility.
+Input-output at the discretion of the developer:
+- read from stdin and write the result to stdout
+- command line switches from where to get the file and where to put the answer
+- combination 1 and 2
+
+There should be a brief reference from the utility itself, and a detailed readme in Russian with a description of the program and its modes.
+
+Any heuristic can be enabled and disabled using command line switches.
+Any heuristic must have boundary conditions for its application - i.e. recommendations,
+When is it safe and when is it not?
+By default, only safe heuristics should be enabled.
+
+The preprocessor must understand the Microsoft Visual Studio 2010 assembler dialect.
+Should work with both 32-bit and 64-bit instructions.
+
+If you need to use compilers, translators and other tools, you need to provide decoupling
+from specific vendors and versions. If a translator needs to be run, this must be done by extension points.
+
+But in general, it is assumed that the preprocessor itself will be included in one of the Visual Studio build events.
+
+
+IMPLEMENTATION
+
+The task is largely research, and there are no ready-made recipes.
+The following replacements can be suggested:
+- addition and dilution of the code with noise (meaningful instructions that do nothing)
+- relocation of addresses that do not require relocation (or the introduction of an additional offset in addressing
+by adding stray bytes in the code)
+- a sub-option is to change the order of allocation of variables on the stack
+- moving global to stack and stack variable to globals
+- moving static data to .text code section
+- xor al, al to mov al, 0 and the like...
+- changing the order of functions and independent code sections (you may need to split one file into several)
+- changing the order of data-independent instructions within the same function (if there are no memory barriers)
+- changing the order of data definition
+- encryption of functions with dynamic decryption: search for the prologue and epilogue of functions, encryption of the body, replacement of the body with a db <byte> heap, substitution of the decryption code into the function prologue
+
+Probably, according to the methods of giving polymorphism to the code, the developments of the 90s should be used.
+
+To parse the command line, use the getopt.c implementation.
